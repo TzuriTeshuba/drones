@@ -1,20 +1,48 @@
 section .rodata
-
+    droneSize: dd 7 ;pid(dword),x,y,speed,angle,score
 section .bss
     random: resw 1
+    N: resd 1   ;initial number of drones
+    R: resd 1   ;number of full scheduler cycles between each elimination
+    K: resd 1   ;how many drone steps between game board printings  
+    d: resd 1   ;(float) maximum distance that allows to destroy a target
+    drones: resd 1    ;pointer to drone array
 
 section .data
-
+    currDroneId: dd 0
+    currRound: dd 0
 
 section .text
     global getRandomNumber
+    global getDrones
+    global getDrone
+    global getN
+
+getN:
+    mov eax, [N]
+    ret
 
 
-;11th, 13th, 14th, 16th bits xor'ed
+
+getDrones:
+    mov eax, [drones]
+    ret
+
+;assumes dword of index was pushed
+getDrone:
+    call getDrones
+    mov ebx, eax
+    pop eax
+    add eax, ebx*droneSize
+
+    
+
+;11th, 13th, 14th, 16th bits xor'ed 
+;stores result in [random] and in eax
 getRandomNumber:
     mov eax, 0 ;eax = i =0
     
-    whileLoop:
+    calcRandomhileLoop:
         ;;check condition - IMPLEMENT
         cmp eax, 16
         jge endOfWhileLoop
@@ -48,7 +76,10 @@ getRandomNumber:
         inc eax         ;i++
         jmp whileLoop
 
-    endOfWhileLoop:
+    endOfCalcRandomWhileLoop:
+        mov eax, 0
+        mov ax, [random]
+        ret 
         
 
 
