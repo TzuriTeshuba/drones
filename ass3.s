@@ -6,6 +6,7 @@ section .rodata
     %define scoreOffset 8
     %define isAliveOffset 12
     %define pidOffset 16
+    maxRandom: dt 0xFFFF.0
     droneSize: dd 20 ;pid(dword),x,y,speed,angle,score, isAlive, pid
     argFormat: db '%d', 0
 section .bss
@@ -16,6 +17,8 @@ section .bss
     d: resd 1   ;(float) maximum distance that allows to destroy a target
     drones: resd 1    ;pointer to drone array
     temp: resd 1
+    result: resd 1
+    dronesLeft: resd 1
 
 section .data
     index: dd 0
@@ -26,6 +29,7 @@ section .text
     global getDrones
     global getDrone
     global getN
+    global convertToFloatInRange
     extern sscanf
     extern malloc
     extern calloc
@@ -33,6 +37,7 @@ section .text
     extern generateTarget
 
 main:
+    finit
     initArgs:
         mov eax, [esp + 4] ;eax holds int argc
         mov ebx, [esp + 8] ;ebx holds char** argv
@@ -43,6 +48,8 @@ main:
         push argFormat
         push N
         call sscanf         ;N = (int)argv[1]
+        mov eax,[N]
+        mov dword[dronesLeft], eax
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 8]
@@ -186,8 +193,23 @@ getRandomNumber:
         mov ax, [random]
         ret 
         
+;;expect first arg/pop to be lower bound, second to be upper bound, third is the raw number
+convertToFloatInRange:
+    finit               ;initialize x87 FP Subsystem
+    mov ebx, [esp + 4] ;ebx = lower bound
+    mov eax, [esp + 8] ;eax = upper bound
+    sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
+    mov dword[temp],eax
+
+    FLD tbyte[maxRandom]    ;ST(0) = maxRandom = 0xFFFF
+    FIDIVIR dword[temp]     ;ST(0) = NB / maxRandom
+    mov eax, [esp + 12]
+    mov dword[temp], eax    ;[temp] = raw number to convert = r
+    FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
+    FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
+    FST dword[temp]         ;[temp] = ST(0)
+    mov eax, [temp]         ;eax holds the converted value
+    add esp, 12             ;remove args from stack
+    ret
 
 theENDDD:
-
-
-

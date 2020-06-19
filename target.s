@@ -13,11 +13,8 @@ section .text
     extern getRandomNumber
 
 targetRun:
-     call generateTarget
-     ;;
-     ;;SUSPEND PROCESS
-     ;;
-     jmp targetRun
+    call generateTarget
+    ret
 
 generateTarget:
     getRandomNumber

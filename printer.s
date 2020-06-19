@@ -1,6 +1,14 @@
+%define xOffset 0
+%define yOffset 2
+%define speedOffset 4
+%define angleOffset 6
+%define scoreOffset 8
+%define isAliveOffset 12
+%define DRONE_SIZE 16
+
 section .rodata
-    droneFormat: db 'id: %d\tX: %d\tY: %d\tSpeed: %d\tAngle: %d\tScore: %d',10,0
-    targetFormat: db 'x: %d, y: %d',10,0
+    droneFormat: db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
+    targetFormat: db 'x: %f, y: %f',10,0
     _hexaFormat: db '%x',10,0
     _deciFormat: db '%d',10,0
     _calcPrompt: db "calc: ", 0
@@ -8,6 +16,7 @@ section .rodata
     _format_string2: db "%s",' '	; format string
 
 section .bss
+    tempAdrs: resd 1
     
 section .data
     index: dd 0
@@ -18,37 +27,90 @@ section .text
     extern getTargetX
     extern getTargetY
     extern getN
+    extern convertToFloatInRange
     extern printf
 
     
 
 ;not good, just prints int value of regs
+;void printDrone(int droneId)
 %macro printDrone 1
     mov eax, %1
-    push eax
     call getDrone   ;eax should hold pointer to drone
-    push dword[eax] ;push id
+    mov dword[tempAdrs],eax
+    ;;push id
+    mov eax, [tempAdrs]
+    add eax, scoreOffset
     mov ebx, 0
-    mov bx, [eax+12]
-    push ebx        ;push x coordinate 
-    mov bx, [eax+10] 
-    push ebx        ;push y coordinate
-    mov bx, [eax+8] 
-    push ebx        ;push speed
-    mov bx, [eax+6]
-    push ebx        ;push angle
-    mov bx, [eax+4]
-    push ebx        ;push scores
+    mov bx, [eax]
+    push ebx
+    push 0
+    push 100
+    call convertToFloatInRange
+    push eax
+    ;;push x coordinate float
+    mov eax, [tempAdrs]
+    add eax, xOffset
+    mov ebx, 0
+    mov bx, [eax]
+    push ebx
+    push 0
+    push 100
+    call convertToFloatInRange
+    push eax
+    ;;push y coordinate float
+    mov eax, [tempAdrs]
+    add eax, yOffset
+    mov ebx, 0
+    mov bx, [eax]
+    push ebx
+    push 0
+    push 100
+    call convertToFloatInRange
+    push eax
+    ;;push speed float
+    mov eax, [tempAdrs]
+    add eax, speedOffset
+    mov ebx, 0
+    mov bx, [eax]
+    push ebx
+    push 0
+    push 100
+    call convertToFloatInRange
+    push eax
+    ;;push angle float
+    mov eax, [tempAdrs]
+    add eax, angleOffset
+    mov ebx, 0
+    mov bx, [eax]
+    push ebx
+    push 0
+    push 360
+    call convertToFloatInRange
+    push eax
+    ;;push score int
+    mov eax, [tempAdrs + scoreOffset]
+    push eax
+
     push droneFormat
     call printf
 %endmacro
 
 %macro printTarget 0
-    getTargetX
-    mov ebx, eax
     getTargetY
     push eax
-    push ebx
+    push 100
+    push 0
+    call convertToFloatInRange
+    push eax
+
+    getTargetX
+    push eax
+    push 100
+    push 0
+    call convertToFloatInRange
+    push eax
+
     push targetFormat
     call printf
 %endmacro
