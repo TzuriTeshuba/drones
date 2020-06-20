@@ -33,6 +33,8 @@ section .text
     extern getTargetY
     extern getN
     extern convertToFloatInRange
+    extern getCo
+    extern resume
     extern printf
 
     
@@ -49,23 +51,23 @@ section .text
     ;;push x coordinate float
     mov eax, [tempAdrs]
     add eax, xOffset    ;eax = adrs of drones[i].x
-    push [eax]
+    push dword[eax]
     ;;push y coordinate float
     mov eax, [tempAdrs]
     add eax, yOffset
-    push [eax]
+    push dword[eax]
     ;;push speed float
     mov eax, [tempAdrs]
     add eax, speedOffset
-    push [eax]
+    push dword[eax]
     ;;push angle float
     mov eax, [tempAdrs]
     add eax, angleOffset
-    push [eax]
+    push dword[eax]
     ;;push score int
     mov eax, [tempAdrs]
     add eax, scoreOffset
-    push [eax]
+    push dword[eax]
     ;;push format
     push droneFormat
     call printf
@@ -73,9 +75,9 @@ section .text
 %endmacro
 
 %macro printTarget 0
-    getTargetY
+    call getTargetY
     push eax
-    getTargetX
+    call getTargetX
     push eax
     push targetFormat
     call printf
@@ -88,9 +90,9 @@ printGame:
     mov dword[index],0
     dronePrintForLoop:
         ;while index < N
-        getN
+        call getN
         cmp dword[index],eax
-        jge, endDronePrintForLoop
+        jge endDronePrintForLoop
         ;print drones[i]
         mov eax, [index]
         printDrone eax

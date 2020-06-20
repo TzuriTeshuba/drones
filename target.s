@@ -17,6 +17,7 @@ section .text
     global getTargetY
     global generateTarget
     extern getRandomNumber
+    extern resume
     extern cors
     extern getCo
     extern getCurrDroneId
