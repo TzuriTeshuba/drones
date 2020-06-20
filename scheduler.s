@@ -33,6 +33,7 @@
                 call printf
                 add esp, 8
                 mov dword[gameOver],1
+                call myExit
     %%keepPlaying:
 %endmacro
 
@@ -80,12 +81,9 @@
 %endmacro
 section .rodata
     inValidResumeInputFormat: db 'Error: Tried to resume out of bounds co-routine', 10,0
-
-
-
-section .bss
     winnerFormat: db 'The winner is Drone #%d',10,0
 
+section .bss
 
 section .data
     numActive:      dd 0
@@ -109,6 +107,7 @@ section .text
     extern endCo
     extern cors
     extern setCurrDrone
+    extern myExit
 
 
 ;;void setCurrDrone(int droneId)
@@ -116,7 +115,20 @@ getCurrDroneId:
     mov eax, [currDroneId]
     ret
 
-;;need to check if drone is sctive...
+
+
+; (*) start from i=0
+; (*)if drone (i%N)+1 is active
+;     (*) switch to the i’th drone co-routine
+; (*) if i%K == 0 //time to print the game board
+;     (*) switch to the printer co-routine
+; (*) if (i/N)%R == 0 && i%N ==0 //R rounds have passed
+;     (*) find M - the lowest number of targets destroyed, between all of the active drones
+;     (*) "turn off" one of the drones that destroyed only M targets.
+; (*) i++
+; (*) if only one active drone is left
+;     (*)print The Winner is drone: <id of the drone>
+;     (*) stop the game (return to main() function or exit)
 runScheduler:
     call getN
     cmp dword[currDroneId], eax

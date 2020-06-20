@@ -1,18 +1,19 @@
-%define xOffset 0
-%define yOffset 4
-%define speedOffset 8
-%define angleOffset 12
-%define scoreOffset 16
-%define isAliveOffset 20
+%define xOffset         0
+%define yOffset         4
+%define speedOffset     8
+%define angleOffset     12
+%define scoreOffset     16
+%define isAliveOffset   20
 
-%define CO_FUNC_OFF 0
-%define CO_SP_OFF 4
-%define COR_SCHED 0
-%define COR_PRINTER 1
-%define COR_TARGET 2
-%define COR_SIZE 8
-%define STK_SIZE 4096
-%define PI 3.14159265359
+%define CO_FUNC_OFF     0
+%define CO_SP_OFF       4
+%define COR_SCHED       0
+%define COR_PRINTER     1
+%define COR_TARGET      2
+%define COR_SIZE        8
+%define STK_SIZE        4096
+%define PI              3.14159265359
+%define twoPi           6.28318530718
 
 
 
@@ -100,10 +101,25 @@
 
 
 %endmacro
+
+
+%macro debugProgArgs 0
+    push dword[temp]
+    push dword[d]
+    push dword[K]
+    push dword[R]
+    push dword[N]
+    push argsFormat
+    call printf
+    add esp, 24
+%endmacro
+
 section .rodata
-    maxRandom: dt 0xFFFF.0
-    droneSize: dd 24 ;x,y,speed,angle,score, isAlive
-    argFormat: db '%d', 0
+    maxRandom:      dt 0xFFFF.0
+    droneSize:      dd 24       ;x,y,speed,angle,score, isAlive
+    argIntFormat:   db '%d', 0
+    argFloatFormat: db '%f',0
+    argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
 section .bss
     random:     resw 1
     N:          resd 1   ;initial number of drones
@@ -125,11 +141,11 @@ section .data
     index: dd 0
 
 section .text
-    global random
     global getRandomNumber
     global getDrones
     global getDrone
     global getN
+    global myExit
     global convertToFloatInRange
     extern sscanf
     extern malloc
@@ -152,7 +168,7 @@ main:
 
         mov eax, [ebx + 4] ;eax = pointer to string rep of N
         push eax
-        push argFormat
+        push argIntFormat
         push N
         call sscanf         ;N = (int)argv[1]
         add esp, 12
@@ -162,7 +178,7 @@ main:
         mov ebx, [esp + 8]
         mov eax, [ebx + 8]
         push eax
-        push argFormat
+        push argIntFormat
         push R
         call sscanf         ;R = (int)argv[2]
         add esp, 12
@@ -170,7 +186,7 @@ main:
         mov ebx, [esp + 8]
         mov eax, [ebx + 12]
         push eax
-        push argFormat
+        push argIntFormat
         push K
         call sscanf         ;K = (int)argv[3]
         add esp, 12
@@ -178,7 +194,7 @@ main:
         mov ebx, [esp + 8]
         mov eax, [ebx + 16]
         push eax
-        push argFormat
+        push argFloatFormat
         push d
         call sscanf         ;d = (int)argv[4]
         add esp, 12
@@ -186,13 +202,14 @@ main:
         mov ebx, [esp + 8]
         mov eax, [ebx + 16]
         push eax
-        push argFormat
+        push argIntFormat
         push temp
         call sscanf         ;temp = (int)argv[5]
         add esp, 12
 
         mov eax, [temp]
         mov word[random],ax ;ax is less sig word of eax
+        debugProgArgs
     
     initTarget:
         call generateTarget
@@ -247,10 +264,13 @@ main:
             push ebx
             call getRandomNumber
             push eax
-            push 2*PI
+            push 360
             push 0
             call convertToFloatInRange
             add esp, 12
+            push eax
+            call convertToRadians
+            add esp, 4
             pop ebx
             mov word[ebx + angleOffset], eax   ;init angle
 
@@ -269,7 +289,8 @@ main:
     endMain:
     ret
 
-
+convertToRadians:
+ret
 ;receives i as args
 getCo:
     mov eax, [ebp + 8]
@@ -286,6 +307,8 @@ startCo:
     mul ebx, COR_SIZE       ;ebx = i*corSize
     add ebx, [cors]         ;ebx = cors[i]
     jmp do_resume
+
+
 
 endCo:
     mov esp, [SPMAIN]
@@ -367,7 +390,7 @@ getRandomNumber:
         mov ax, [random]
         ret 
         
-;;expect first arg/pop to be lower bound, second to be upper bound, third is the raw number
+;;expect first arg/pop be lower bound, second to be upper bound, third is the raw number
 convertToFloatInRange:
     finit               ;initialize x87 FP Subsystem
     mov ebx, [esp + 8] ;ebx = lower bound
@@ -384,5 +407,19 @@ convertToFloatInRange:
     FST dword[temp]         ;[temp] = ST(0)
     mov eax, [temp]         ;eax holds the converted value
     ret
+
+myExit:
+    push dword[drones]
+    call free
+    add esp, 4
+
+    push dword[cors]
+    call free
+    add esp, 4
+
+    push dword[corsStack]
+    call free
+    add esp, 4
+
 
 theENDDD:

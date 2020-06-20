@@ -7,6 +7,9 @@
 %define isAliveOffset 20
 
 %define PI 3.14159265359
+%define COR_SCHED 0
+%define COR_PRINTER 1
+%define COR_TARGET 2
 
 
 ;;should be good
@@ -168,6 +171,7 @@ section .data
     temp:       dd 0
 
 section .text
+    extern resumeCor
     extern getD
     extern getTargetX
     extern getTargetY
@@ -185,10 +189,9 @@ runDrone:
     mov dword[currDrone], eax
     add esp, 4
     moveDrone
-
-    mov eax, [currId]
-    add eax, 3
-    push eax
+    call mayDestroy
+    ;;resume scheduler
+    push COR_SCHED
     call getCo
     add esp, 4
     mov ebx, eax
@@ -221,6 +224,24 @@ mayDestroy:
     call getD
     mov dword[temp], eax
     FCOM dword[temp]    ;comp ST(0) with d
+
+    jle destroyTarget
+    jmp notInRange
+        destroyTarget:
+            mov eax, [currDrone]
+            add eax, scoreOffset
+            inc dword[eax]
+            ;;need to resume target
+            push COR_TARGET
+            call startCo
+
+        notInRange:
+            push COR_SCHED
+            call getCo
+            add esp, 4
+            mov ebx, eax
+            call resume
+    ret
 
 
 

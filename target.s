@@ -6,10 +6,10 @@
 section .rodata
 
 section .bss
-    targetX: resw 1
-    targetY: resw 1
 
 section .data   
+    targetX: dd 0
+    targetY: dd 0
 
 section .text
     global runTarget
@@ -19,10 +19,14 @@ section .text
     extern getRandomNumber
     extern cors
     extern getCo
+    extern getCurrDroneId
+    extern convertToFloatInRange
 
 runTarget:
     call generateTarget
-    push COR_TARGET
+    call getCurrDroneId
+    add eax, 3
+    push eax
     call getCo
     add esp, 4
     mov ebx, eax
@@ -30,18 +34,28 @@ runTarget:
     jmp runTarget;;this line not from slides, but i feel like it should
 
 generateTarget:
-    getRandomNumber
-    mov word[targetX],ax
-    getRandomNumber
-    mov word[targetY],ax
+    call getRandomNumber
+    push eax
+    push 100
+    push 0
+    call convertToFloatInRange
+    add esp,12
+    mov dword[targetX],eax
+
+    call getRandomNumber
+    push eax
+    push 100
+    push 0
+    call convertToFloatInRange
+    add esp,12
+    mov dword[targetY],eax
+
     ret
 
 getTargetX:
-    mov eax,0
-    mov ax, [targetX]
+    mov eax, [targetX]
     ret
 
 getTargetY:
-    mov eax,0
-    mov ax, [targetY]
+    mov eax, [targetY]
     ret

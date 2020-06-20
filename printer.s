@@ -5,7 +5,10 @@
 %define scoreOffset 8
 %define isAliveOffset 12
 %define DRONE_SIZE 16
+
+%define COR_SCHED 0
 %define COR_PRINTER 1
+%define COR_TARGET 2
 
 
 section .rodata
@@ -38,84 +41,45 @@ section .text
 ;void printDrone(int droneId)
 %macro printDrone 1
     mov eax, %1
-    push eax
-    call getDrone   ;eax should hold pointer to drone
-    mov dword[tempAdrs],eax
     ;;push id
-    mov eax, [tempAdrs]
-    add eax, scoreOffset
-    mov ebx, 0
-    mov bx, [eax]
-    push ebx
-    push 0
-    push 100
-    call convertToFloatInRange
     push eax
+    call getDrone           ;eax should hold pointer to drone
+    mov dword[tempAdrs],eax ;eax hold pointer to drone
+
     ;;push x coordinate float
     mov eax, [tempAdrs]
-    add eax, xOffset
-    mov ebx, 0
-    mov bx, [eax]
-    push ebx
-    push 0
-    push 100
-    call convertToFloatInRange
-    push eax
+    add eax, xOffset    ;eax = adrs of drones[i].x
+    push [eax]
     ;;push y coordinate float
     mov eax, [tempAdrs]
     add eax, yOffset
-    mov ebx, 0
-    mov bx, [eax]
-    push ebx
-    push 0
-    push 100
-    call convertToFloatInRange
-    push eax
+    push [eax]
     ;;push speed float
     mov eax, [tempAdrs]
     add eax, speedOffset
-    mov ebx, 0
-    mov bx, [eax]
-    push ebx
-    push 0
-    push 100
-    call convertToFloatInRange
-    push eax
+    push [eax]
     ;;push angle float
     mov eax, [tempAdrs]
     add eax, angleOffset
-    mov ebx, 0
-    mov bx, [eax]
-    push ebx
-    push 0
-    push 360
-    call convertToFloatInRange
-    push eax
+    push [eax]
     ;;push score int
-    mov eax, [tempAdrs + scoreOffset]
-    push eax
-
+    mov eax, [tempAdrs]
+    add eax, scoreOffset
+    push [eax]
+    ;;push format
     push droneFormat
     call printf
+    add esp, 28
 %endmacro
 
 %macro printTarget 0
     getTargetY
     push eax
-    push 100
-    push 0
-    call convertToFloatInRange
-    push eax
-
     getTargetX
     push eax
-    push 100
-    push 0
-    call convertToFloatInRange
-    push eax
-
     push targetFormat
     call printf
+    add esp, 12
 %endmacro
 
 printGame:
@@ -133,7 +97,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
-        push COR_PRINTER
+        push COR_SCHED
         call getCo
         add esp, 4
         mov ebx, eax
