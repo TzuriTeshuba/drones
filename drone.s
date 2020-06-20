@@ -42,16 +42,18 @@
     FCOS                ;ST(0) = cos(angle)
     FMUL dword[speed]   ;ST(0) = speed*cos(angle)
     FADD dword[xPos]    ;ST(0) = x + speed*cos(angle)
-    FCOM 0
+    mov dword[temp],0
+    FICOM dword[temp]
     jl %%xIsNegative
-    FCOM 100
+    mov dword[temp],100
+    FICOM dword[temp]
     jg %%xTooLarge
     jmp %%setX
         %%xIsNegative:
-            FADD 100
+            FIADD dword[temp]
             jmp %%setX
         %%xTooLarge:
-            FSUB 100
+            FISUB dword[temp]
             jmp %%setX
         %%setX:
             FST dword[xPos]     ;[xPos] = ST(0)
@@ -62,17 +64,19 @@
     FSIN                ;ST(0) = cos(angle)
     FMUL dword[speed]   ;ST(0) = speed*cos(angle)
     FADD dword[yPos]    ;ST(0) = x + speed*cos(angle)
-    FCOM 0
+    mov dword[temp],0
+    FICOM dword[temp]
     jl %%yIsNegative
-    FCOM 100
+    mov dword[temp],100
+    FICOM dword[temp]
     jg %%yTooLarge
-    jmp %%sety
+    jmp %%setY
         %%yIsNegative:
-            FADD 100
-            jmp %%sety
+            FADD dword[temp]
+            jmp %%setY
         %%yTooLarge:
-            FSUB 100
-            jmp %%sety
+            FSUB dword[temp]
+            jmp %%setY
         %%setY:
             FST dword[yPos]     ;[xPos] = ST(0)
 
@@ -87,11 +91,12 @@
     mov dword[temp], eax    ;[temp] = FP in [-10,10] range
     FLD dword[temp]         
     FLD dword[speed]        ;;ST(0) = currSpeed, ST(1) = temp = deltaSpeed
-    FADDP  
-    FCOM 100                ;flag should be result of comparison (ST(0),100)
+    FADDP 
+    mov dword[temp],100
+    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
     jl %%setSpeed
         %%clampSpeed:
-            FLD 100
+            FILD dword[temp]
         %%setSpeed:
             FST dword[speed]
 
@@ -110,16 +115,17 @@
     FLD dword[temp]         
     FLD dword[angle]        ;;ST(0) = currAngle, ST(1) = temp = deltaAngle
     FADDP
-    FCOM 0                ;flag should be result of comparison (ST(0),100)
+    mov dword[temp],0
+    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
     jl %%angleIsNegative
-    FCOM tword[twoPi]
+    FCOM dword[twoPi]
     jg %%angleTooLarge
     jmp %%setAngle
         %%angleIsNegative:
-            FADD tword[twoPi]
+            FADD dword[twoPi]
             jmp %%setAngle   
         %%angleTooLarge:
-            FSUB tword[twoPi]       ;ST(0) = ST(0) - 2*pi
+            FSUB dword[twoPi]       ;ST(0) = ST(0) - 2*pi
             jmp %%setAngle
         %%setAngle:
             FST dword[angle]
@@ -159,7 +165,7 @@
 
 
 section .rodata
-    twoPi: dt 6.28318530718
+    twoPi: dd 6.28318530718
 section .bss
 
 section .data
@@ -183,6 +189,10 @@ section .text
     extern getRandomNumber
     extern convertToFloatInRange
     extern convertToRadians
+    extern getCo
+    extern resume
+    extern startCo
+    
 
 
 runDrone:
@@ -211,18 +221,18 @@ mayDestroy:
     FINIT
     FLD dword[tx]
     FSUB dword[xPos]
-    FLD ST(0)
-    FMUL ST(0), ST(1)
+    FLD ST0
+    FMUL ST0, ST1
     FST dword[temp]
 
     FINIT
     FLD dword[ty]
     FSUB dword[yPos]
-    FLD ST(0)
-    FMUL ST(0), ST(1)
+    FLD ST0
+    FMUL ST0, ST1
 
     FLD dword[temp]
-    FADD ST(0),ST(1)
+    FADD ST0,ST1
 
     FSQRT       ;ST(0) = sqrt( (xt-xd)^2 + (yt-yd)^2 )
     call getD
