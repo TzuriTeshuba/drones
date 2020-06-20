@@ -29,7 +29,7 @@
 
     mov ebx, [eax+angleOffset]   ;ebx holds angle
     mov dword[angle], ebx
-%macro
+%endmacro
 
 ;;should be good
 ;;moves drone and calculates new fields
@@ -50,7 +50,7 @@
         %%xIsNegative:
             FADD 100
             jmp %%setX
-        %xTooLarge:
+        %%xTooLarge:
             FSUB 100
             jmp %%setX
         %%setX:
@@ -70,10 +70,10 @@
         %%yIsNegative:
             FADD 100
             jmp %%sety
-        %yTooLarge:
+        %%yTooLarge:
             FSUB 100
             jmp %%sety
-        %%setX:
+        %%setY:
             FST dword[yPos]     ;[xPos] = ST(0)
 
     ;;newSpeed
@@ -87,7 +87,7 @@
     mov dword[temp], eax    ;[temp] = FP in [-10,10] range
     FLD dword[temp]         
     FLD dword[speed]        ;;ST(0) = currSpeed, ST(1) = temp = deltaSpeed
-    FADD ST(0), ST(1)
+    FADDP  
     FCOM 100                ;flag should be result of comparison (ST(0),100)
     jl %%setSpeed
         %%clampSpeed:
@@ -99,24 +99,27 @@
     FINIT
     call getRandomNumber
     push eax
-    push PI/3
-    push -PI/3
+    push 60
+    push -60
     call convertToFloatInRange
     add esp, 12
+    push eax
+    call convertToRadians
+    add esp, 4
     mov dword[temp], eax    ;[temp] = FP in [-pi/3,pi/3] range
     FLD dword[temp]         
     FLD dword[angle]        ;;ST(0) = currAngle, ST(1) = temp = deltaAngle
-    FADD ST(0), ST(1)
+    FADDP
     FCOM 0                ;flag should be result of comparison (ST(0),100)
     jl %%angleIsNegative
-    FCOM 2*PI
+    FCOM tword[twoPi]
     jg %%angleTooLarge
     jmp %%setAngle
         %%angleIsNegative:
-            FADD 2*PI
+            FADD tword[twoPi]
             jmp %%setAngle   
         %%angleTooLarge:
-            FSUB 2*PI       ;ST(0) = ST(0) - 2*pi
+            FSUB tword[twoPi]       ;ST(0) = ST(0) - 2*pi
             jmp %%setAngle
         %%setAngle:
             FST dword[angle]
@@ -156,7 +159,7 @@
 
 
 section .rodata
-
+    twoPi: dt 6.28318530718
 section .bss
 
 section .data
@@ -179,6 +182,7 @@ section .text
     extern getDrone
     extern getRandomNumber
     extern convertToFloatInRange
+    extern convertToRadians
 
 
 runDrone:

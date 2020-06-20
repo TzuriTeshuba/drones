@@ -25,8 +25,8 @@
         je %%notTheWinner
         jmp %%foundWinner
             %%notTheWinner:
-                ind dword[index]
-                jmp %% getWinnerWhileLoop
+                inc dword[index]
+                jmp %%getWinnerWhileLoop
             %%foundWinner:
                 push dword[index]
                 push winnerFormat
@@ -46,10 +46,12 @@
     mov dword[numActive],-1
     mov dword[index],0
     %%forLoop:
+        call getN
+        mov ebx, eax
         mov eax, [index]
-        cmp eax, [N]
+        cmp eax, ebx
         je %%endForLoop
-        push eax
+        push ebx
         call getDrone
         mov ebx, eax
         add ebx, isAliveOffset
@@ -72,7 +74,7 @@
                         mov dword[minScore], ebx
                         mov dword[currLoser], eax
                         inc dword[index]
-                        jmp forLoop
+                        jmp %%forLoop
     %%endForLoop:
         ;;deactivate loser
         mov eax, [currLoser]
@@ -104,9 +106,11 @@ section .text
     extern getR
     extern getDrone
     extern resume
+    extern getCo
     extern endCo
     extern cors
     extern setCurrDrone
+    extern printf
     extern myExit
 
 
@@ -115,6 +119,11 @@ getCurrDroneId:
     mov eax, [currDroneId]
     ret
 
+isDroneActive:
+    push dword[currDroneId]
+    call getDrone
+    add eax, isAliveOffset
+    mov eax, [eax]
 
 
 ; (*) start from i=0

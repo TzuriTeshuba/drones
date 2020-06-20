@@ -155,6 +155,8 @@ section .text
     global getN
     global myExit
     global convertToFloatInRange
+    global convertToRadians
+    global getCo
     extern printf
     extern sscanf
     extern malloc

@@ -13,7 +13,7 @@ ass3.o: ass3.s
 scheduler.o: scheduler.s
 	nasm -f elf scheduler.s -o scheduler.o
 
-drones.o: drones.s
+drone.o: drone.s
 	nasm -f elf drone.s -o drone.o
 
 printer.o: printer.s
