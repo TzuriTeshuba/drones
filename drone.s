@@ -7,6 +7,7 @@ section .rodata
     %define scoreOffset 8
     %define isAliveOffset 12
     %define pidOffset 16
+    %define 3.14159265359
 
 section .bss
 
@@ -90,9 +91,11 @@ section .text
 %endmacro
 
 
-droneTurn:
+resumeDroneCoroutine:
     ;;index stored at ebp - 4
-    getSelf     ;eax = self
+    push dword[esp + 4]
+    call getDrone
+
 
     
 

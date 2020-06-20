@@ -36,6 +36,7 @@ section .text
 ;void printDrone(int droneId)
 %macro printDrone 1
     mov eax, %1
+    push eax
     call getDrone   ;eax should hold pointer to drone
     mov dword[tempAdrs],eax
     ;;push id
@@ -130,10 +131,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
-        ;;
-        ;;suspend process
-        ;;
-        jmp printGame
+        ret
 
 
 

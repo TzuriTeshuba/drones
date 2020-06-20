@@ -1,24 +1,92 @@
+%define xOffset 0
+%define yOffset 2
+%define speedOffset 4
+%define angleOffset 6
+%define scoreOffset 8
+%define isAliveOffset 12
+%define pidOffset 16
+
+%define COR_SCHED 0
+%define COR_PRINTER 1
+%define COR_TARGET 2
+%define COR_SIZE 32
+%define STK_SIZE 4096
+
+
+%macro initCors 0
+    mov eax,[N]
+    add eax, 3
+    push eax
+    push COR_SIZE
+    call calloc
+    mov dword[cors],eax
+
+    mov eax, [N]
+    add eax, 3
+    push eax
+    mov eax, STK_SIZE
+    call calloc
+    mov dword[corsStack], eax
+
+    mov ebx, [cors]
+    ;;cors[0] is scheduler
+    mov dword[ebx], runScheduler
+    mov eax, STK_SIZE
+    add eax, [corsStack]
+    mov dword[ebx+8],eax
+
+    ;;cors[1] is printer
+    mov dword[ebx +COR_PRINTER*COR_SIZE], runPrinter
+    mov eax, STK_SIZE
+    mul eax, COR_PRINTER+1
+    add eax, [corsStack]
+    mov dword[ebx+COR_PRINTER*COR_SIZE+8], eax
+
+    ;;cors[2] is target
+    mov dword[ebx +COR_TARGET*COR_SIZE], runTarget
+    mov eax, STK_SIZE
+    mul eax, COR_TARGET+1
+    add eax, [corsStack]
+    mov dword[ebx+COR_TARGET*COR_SIZE+8], eax
+
+    mov dword[index],0
+    %%initDroneCorsWhileLoop:
+        ;check condition (index < N+3)
+        mov eax, [index]
+        cmp eax, [N]
+        jge %%endInitDroneCorsWhileLoop
+
+        ;;cors[i+3] is drone i
+        mov ebx, [index]
+        add ebx, 3
+        mul ebx, COR_SIZE
+        add ebx, [cors]
+        mov dword[ebx], runDrone
+        mov eax, STK_SIZE
+        mul eax, [index]+4
+        add eax, [corsStack]
+        mov dword[ebx+8], eax
+
+        inc dword[index]
+        jmp initDroneCorsWhileLoop
+    %%endInitDroneCorsWhileLoop:
+%endmacro
 section .rodata
-    %define xOffset 0
-    %define yOffset 2
-    %define speedOffset 4
-    %define angleOffset 6
-    %define scoreOffset 8
-    %define isAliveOffset 12
-    %define pidOffset 16
     maxRandom: dt 0xFFFF.0
     droneSize: dd 20 ;pid(dword),x,y,speed,angle,score, isAlive, pid
     argFormat: db '%d', 0
 section .bss
-    random: resw 1
-    N: resd 1   ;initial number of drones
-    R: resd 1   ;number of full scheduler cycles between each elimination
-    K: resd 1   ;how many drone steps between game board printings  
-    d: resd 1   ;(float) maximum distance that allows to destroy a target
-    drones: resd 1    ;pointer to drone array
-    temp: resd 1
-    result: resd 1
+    random:     resw 1
+    N:          resd 1   ;initial number of drones
+    R:          resd 1   ;number of full scheduler cycles between each elimination
+    K:          resd 1   ;how many drone steps between game board printings  
+    d:          resd 1   ;(float) maximum distance that allows to destroy a target
+    drones:     resd 1    ;pointer to drone array
+    temp:       resd 1
+    result:     resd 1
     dronesLeft: resd 1
+    cors:       resd 1
+    corsStack:  resd 1
 
 section .data
     index: dd 0
@@ -35,6 +103,10 @@ section .text
     extern calloc
     extern free
     extern generateTarget
+    extern runTarget
+    extern runPrinter
+    extern runScheduler
+    extern runDrone
 
 main:
     finit
@@ -127,7 +199,7 @@ main:
             jmp initDronesWhileLoop
 
         endInitDronesWhileLoop:
-
+        initCors
     endMain:
     ret
 
@@ -146,6 +218,7 @@ getDrone:
     mov ebx, eax
     pop eax
     add eax, ebx*droneSize
+    ret
 
     
 
