@@ -180,6 +180,7 @@ section .data
     temp:       dd 0
 
 section .text
+    global runDrone
     extern resumeCor
     extern getD
     extern getTargetX
@@ -192,7 +193,7 @@ section .text
     extern getCo
     extern resume
     extern startCo
-    
+
 
 
 runDrone:

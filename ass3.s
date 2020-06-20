@@ -110,6 +110,11 @@
 
 %endmacro
 
+%macro printGreeting 0
+    push greetingMsg
+    call printf
+    add esp, 4
+%endmacro
 
 %macro debugProgArgs 0
     push dword[temp]
@@ -128,6 +133,7 @@ section .rodata
     argIntFormat:   db '%d', 0
     argFloatFormat: db '%f',0
     argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
+    greetingMsg:    db 'Drone Battale Royale!', 10, 0
 section .bss
     random:     resw 1
     N:          resd 1   ;initial number of drones
@@ -149,10 +155,17 @@ section .data
     index: dd 0
 
 section .text
+    global main
+    global resume
     global getRandomNumber
     global getDrones
     global getDrone
     global getN
+    global getK
+    global getR
+    global getD
+    global startCo
+    global endCo
     global myExit
     global convertToFloatInRange
     global convertToRadians
@@ -170,7 +183,8 @@ section .text
 
 ;;return esp after func calls
 main:
-    finit
+    printGreeting
+    FINIT
     initArgs:
         mov eax, [esp + 4] ;eax holds int argc
         mov ebx, [esp + 8] ;ebx holds char** argv
@@ -355,6 +369,15 @@ do_resume:
 
 getN:
     mov eax, [N]
+    ret
+getD:
+    mov eax, [d]
+    ret
+getK:
+    mov eax, [K]
+    ret
+getR:
+    mov eax, [R]
     ret
 
 getDrones:

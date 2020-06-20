@@ -101,6 +101,7 @@ section .data
 
 section .text
     global getCurrDroneId
+    global runScheduler
     extern getN
     extern getK
     extern getR

@@ -10,35 +10,6 @@
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
-
-section .rodata
-    droneFormat: db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
-    targetFormat: db 'x: %f, y: %f',10,0
-    _hexaFormat: db '%x',10,0
-    _deciFormat: db '%d',10,0
-    _calcPrompt: db "calc: ", 0
-    _format_string: db "%s", 10, 0	; format string
-    _format_string2: db "%s",' '	; format string
-
-section .bss
-    tempAdrs: resd 1
-    
-section .data
-    index: dd 0
-
-section .text
-    global printGame
-    extern getDrone
-    extern getTargetX
-    extern getTargetY
-    extern getN
-    extern convertToFloatInRange
-    extern getCo
-    extern resume
-    extern printf
-
-    
-
 ;not good, just prints int value of regs
 ;void printDrone(int droneId)
 %macro printDrone 1
@@ -84,7 +55,35 @@ section .text
     add esp, 12
 %endmacro
 
-printGame:
+section .rodata
+    droneFormat: db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
+    targetFormat: db 'x: %f, y: %f',10,0
+    _hexaFormat: db '%x',10,0
+    _deciFormat: db '%d',10,0
+    _calcPrompt: db "calc: ", 0
+    _format_string: db "%s", 10, 0	; format string
+    _format_string2: db "%s",' '	; format string
+
+section .bss
+    tempAdrs: resd 1
+    
+section .data
+    index: dd 0
+
+section .text
+    global printGame
+    global runPrinter
+    extern getDrone
+    extern getTargetX
+    extern getTargetY
+    extern getN
+    extern convertToFloatInRange
+    extern getCo
+    extern resume
+    extern printf
+
+    
+runPrinter:
     ;print target x,y -> stats of all drones -> suspend own process -> repeat
     printTarget
     mov dword[index],0
