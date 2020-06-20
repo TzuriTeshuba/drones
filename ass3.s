@@ -1,9 +1,9 @@
 %define xOffset 0
-%define yOffset 2
-%define speedOffset 4
-%define angleOffset 6
-%define scoreOffset 8
-%define isAliveOffset 12
+%define yOffset 4
+%define speedOffset 8
+%define angleOffset 12
+%define scoreOffset 16
+%define isAliveOffset 20
 
 %define CO_FUNC_OFF 0
 %define CO_SP_OFF 4
@@ -12,6 +12,8 @@
 %define COR_TARGET 2
 %define COR_SIZE 8
 %define STK_SIZE 4096
+%define PI 3.14159265359
+
 
 
 %macro initCors 0
@@ -100,7 +102,7 @@
 %endmacro
 section .rodata
     maxRandom: dt 0xFFFF.0
-    droneSize: dd 20 ;x,y,speed,angle,score, isAlive
+    droneSize: dd 24 ;x,y,speed,angle,score, isAlive
     argFormat: db '%d', 0
 section .bss
     random:     resw 1
@@ -139,6 +141,7 @@ section .text
     extern runScheduler
     extern runDrone
 
+;;return esp after func calls
 main:
     finit
     initArgs:
@@ -146,11 +149,13 @@ main:
         mov ebx, [esp + 8] ;ebx holds char** argv
         cmp eax, 6  ;should be 6 args (progName, N, R, K, d, seed)
         jne endMain
+
         mov eax, [ebx + 4] ;eax = pointer to string rep of N
         push eax
         push argFormat
         push N
         call sscanf         ;N = (int)argv[1]
+        add esp, 12
         mov eax,[N]
         mov dword[dronesLeft], eax
 
@@ -160,6 +165,7 @@ main:
         push argFormat
         push R
         call sscanf         ;R = (int)argv[2]
+        add esp, 12
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 12]
@@ -167,6 +173,7 @@ main:
         push argFormat
         push K
         call sscanf         ;K = (int)argv[3]
+        add esp, 12
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 16]
@@ -174,6 +181,7 @@ main:
         push argFormat
         push d
         call sscanf         ;d = (int)argv[4]
+        add esp, 12
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 16]
@@ -181,6 +189,8 @@ main:
         push argFormat
         push temp
         call sscanf         ;temp = (int)argv[5]
+        add esp, 12
+
         mov eax, [temp]
         mov word[random],ax ;ax is less sig word of eax
     
@@ -206,23 +216,43 @@ main:
 
             push ebx
             call getRandomNumber
+            push eax
+            push 100
+            push 0
+            call convertToFloatInRange
+            add esp, 12
             pop ebx
-            mov word[ebx + xOffset], ax   ;init x
+            mov dword[ebx + xOffset], eax   ;init x
 
             push ebx
             call getRandomNumber
+            push eax
+            push 100
+            push 0
+            call convertToFloatInRange
+            add esp, 12
             pop ebx
-            mov word[ebx + yOffset], ax   ;init y
+            mov word[ebx + yOffset], eax   ;init y
 
             push ebx
             call getRandomNumber
+            push eax
+            push 100
+            push 0
+            call convertToFloatInRange
+            add esp, 12
             pop ebx
-            mov word[ebx + speedOffset], ax   ;init speed
+            mov word[ebx + speedOffset], eax   ;init speed
 
             push ebx
             call getRandomNumber
+            push eax
+            push 2*PI
+            push 0
+            call convertToFloatInRange
+            add esp, 12
             pop ebx
-            mov word[ebx + angleOffset], ax   ;init angle
+            mov word[ebx + angleOffset], eax   ;init angle
 
             mov dword[ebx + isAliveOffset],1
 
@@ -286,10 +316,9 @@ getDrones:
 ;assumes dword of index was pushed
 ;SHOULD NOT USE ecx
 getDrone:
-    call getDrones
-    mov ebx, eax
-    pop eax
-    add eax, ebx*droneSize
+    mov eax, [ebp + 8]      ;eax = i
+    mul eax, [droneSize]    ;eax = droneSize*i
+    add eax, [drones]       ;eax = adrs of drones[i]
     ret
 
     
@@ -341,20 +370,19 @@ getRandomNumber:
 ;;expect first arg/pop to be lower bound, second to be upper bound, third is the raw number
 convertToFloatInRange:
     finit               ;initialize x87 FP Subsystem
-    mov ebx, [esp + 4] ;ebx = lower bound
-    mov eax, [esp + 8] ;eax = upper bound
+    mov ebx, [esp + 8] ;ebx = lower bound
+    mov eax, [esp + 12] ;eax = upper bound
     sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
     mov dword[temp],eax
 
     FLD tbyte[maxRandom]    ;ST(0) = maxRandom = 0xFFFF
     FIDIVIR dword[temp]     ;ST(0) = NB / maxRandom
-    mov eax, [esp + 12]
+    mov eax, [esp + 16]
     mov dword[temp], eax    ;[temp] = raw number to convert = r
     FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
     FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
     FST dword[temp]         ;[temp] = ST(0)
     mov eax, [temp]         ;eax holds the converted value
-    add esp, 12             ;remove args from stack
     ret
 
 theENDDD:

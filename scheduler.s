@@ -11,17 +11,32 @@
 %define COR_PRINTER -2
 %define COR_TARGET -3
 
+;;checks if there is a winner. if yes: prints winner and sets gameOver flag
+;;pre-condition: numActive holds number of active drones
 %macro checkForWinner 0
     cmp dword[numActive],1
     jne %%keepPlaying
     mov dword[index],0
     %%getWinnerWhileLoop:
-        
-
+        push dword[index]
+        call getDrone
+        add esp, 4
+        cmp dword[eax+isAliveOffset],0
+        je %%notTheWinner
+        jmp %%foundWinner
+            %%notTheWinner:
+                ind dword[index]
+                jmp %% getWinnerWhileLoop
+            %%foundWinner:
+                push dword[index]
+                push winnerFormat
+                call printf
+                add esp, 8
+                mov dword[gameOver],1
     %%keepPlaying:
 %endmacro
 
-
+;;deactivates drones with lowest score. if multiple, than one with lowest id
 %macro eliminateLoser 0
     ;hold min in eax
     ;hold currLoser in ebx
@@ -69,6 +84,8 @@ section .rodata
 
 
 section .bss
+    winnerFormat: db 'The winner is Drone #%d',10,0
+
 
 section .data
     numActive:      dd 0
@@ -79,12 +96,11 @@ section .data
     beginning:      dd 0
     iModk:          dd 0
     iModR:          dd -1
-    shouldTerminate:dd 0
     index:          dd 0
-    gameOver:       dd 1
+    gameOver:       dd 0
 
 section .text
-    extern N
+    global getCurrDroneId
     extern getN
     extern getK
     extern getR
@@ -92,75 +108,14 @@ section .text
     extern resume
     extern endCo
     extern cors
+    extern setCurrDrone
 
 
-
-
-initProcesses:
-    push ebp            ;;from lab 9
-	mov	ebp, esp        ;;from lab 9
-	;sub	esp, STK_RES    ;;from lab 9
-
-    initTargetProcess
-
-eliminateLoser:
+;;void setCurrDrone(int droneId)
+getCurrDroneId:
+    mov eax, [currDroneId]
     ret
 
-checkForWinner:
-    ret
-;;void resume(int co-routine)
-myResume:
-    mov ebx, [esp + 4]
-    cmp ebx, COR_PRINTER
-    je resumePrinter
-    cmp ebx, COR_SCHEDULER
-    je resumeScheduler
-    cmp ebx, COR_TARGET
-    je resumeTarget
-    call getN
-    mov ebx, [esp + 4]
-    cmp ebx, eax    ;cmp arg with N
-    jge inValidResumeInput
-    cmp ebx, COR_TARGET
-    jl inValidResumeInput
-        resumeDrone:
-            push dword[esp+4]
-            call resumeDroneCoroutine
-            jmp endOfResume
-        resumePrinter:
-            call printGame
-            jmp endOfResume
-        resumeScheduler:
-            ;;???
-        resumeTarget:
-            call targetRun
-            jmp endOfResume
-        inValidResumeInput:
-            mov edx, 47                             ;edx = numBytes to write
-            mov ecx, inValidResumeInputFormat       ;ecx = char (buffer)
-            mov ebx, 2                              ;ebx = stderr
-            mov eax, 4                              ;eax = sys_write op code
-            int 0x80                                ;call the kernel
-
-    endOfResume:
-        pop eax
-        ret
-
-
-/*
-(*) start from i=0
-(1)if drone (i%N)+1 is active
-    (*) switch to the i’th drone co-routine
-(2) if i%K == 0 //time to print the game board
-    (*) switch to the printer co-routine
-(3) if (i/N)%R == 0 && i%N ==0 //R rounds have passed
-    (*) find M - the lowest number of targets destroyed, between all of the active drones
-    (*) "turn off" one of the drones that destroyed only M targets.
-(4) i++
-(5) if only one active drone is left
-    (*)print The Winner is drone: <id of the drone>
-    (*) stop the game (return to main() function or exit)
-*/
 ;;need to check if drone is sctive...
 runScheduler:
     call getN
@@ -177,9 +132,7 @@ runScheduler:
             je currDroneNotActive
             jmp currDroneIsActive
                 currDroneNotActive:
-                    inc dword[currDroneId]
-                    inc dword[iModk]
-                    jmp runScheduler
+                    jmp printerCheck
 
                 currDroneIsActive:
                     mov eax, [currDroneId]
@@ -189,8 +142,7 @@ runScheduler:
                     add esp, 4
                     mov ebx, eax    ;ebx = eax = pointer to cor(drone i)
                     call resume
-                    inc dword[currDroneId]
-    
+    printerCheck:
     call getK
     cmp dword[iModk], eax
     jne iModKisNotK
@@ -202,8 +154,6 @@ runScheduler:
             mov ebx, eax
             call resume
         iModKisNotK:
-            inc dword[currDroneId]
-
     ;;how many rounds passed
     cmp dword[currDroneId],0
     jne endLoop
@@ -216,7 +166,9 @@ runScheduler:
             checkForWinner
 
     endLoop:
-        cmp dword[shouldTerminate],0
+        inc dword[currDroneId]
+        inc dword[iModk]
+        cmp dword[gameOver],0
         je runScheduler
         jmp endCo
 

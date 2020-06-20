@@ -5,6 +5,8 @@
 %define scoreOffset 8
 %define isAliveOffset 12
 %define DRONE_SIZE 16
+%define COR_PRINTER 1
+
 
 section .rodata
     droneFormat: db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
@@ -131,7 +133,11 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
-        ret
+        push COR_PRINTER
+        call getCo
+        add esp, 4
+        mov ebx, eax
+        call resume
 
 
 
