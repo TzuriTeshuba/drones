@@ -4,12 +4,13 @@
 %define angleOffset 6
 %define scoreOffset 8
 %define isAliveOffset 12
-%define pidOffset 16
 
+%define CO_FUNC_OFF 0
+%define CO_SP_OFF 4
 %define COR_SCHED 0
 %define COR_PRINTER 1
 %define COR_TARGET 2
-%define COR_SIZE 32
+%define COR_SIZE 8
 %define STK_SIZE 4096
 
 
@@ -33,21 +34,21 @@
     mov dword[ebx], runScheduler
     mov eax, STK_SIZE
     add eax, [corsStack]
-    mov dword[ebx+8],eax
+    mov dword[ebx+SPP],eax
 
     ;;cors[1] is printer
     mov dword[ebx +COR_PRINTER*COR_SIZE], runPrinter
     mov eax, STK_SIZE
     mul eax, COR_PRINTER+1
     add eax, [corsStack]
-    mov dword[ebx+COR_PRINTER*COR_SIZE+8], eax
+    mov dword[ebx+COR_PRINTER*COR_SIZE+SPP], eax
 
     ;;cors[2] is target
     mov dword[ebx +COR_TARGET*COR_SIZE], runTarget
     mov eax, STK_SIZE
     mul eax, COR_TARGET+1
     add eax, [corsStack]
-    mov dword[ebx+COR_TARGET*COR_SIZE+8], eax
+    mov dword[ebx+COR_TARGET*COR_SIZE+SPP], eax
 
     mov dword[index],0
     %%initDroneCorsWhileLoop:
@@ -65,15 +66,41 @@
         mov eax, STK_SIZE
         mul eax, [index]+4
         add eax, [corsStack]
-        mov dword[ebx+8], eax
+        mov dword[ebx+SPP], eax
 
         inc dword[index]
         jmp initDroneCorsWhileLoop
     %%endInitDroneCorsWhileLoop:
+    %%initStacks:
+        mov dword[index],0
+        %%initStacksForLoop:
+            mov ebx, [index]
+            cmp ebx, [numCors]
+            jge %%endInitStacksForLoop
+
+            ;;initCo(i)
+            mul ebx, COR_SIZE
+            add ebx, [cors]
+            mov eax, [ebx + CO_FUNC_OFF]
+            mov SPT, esp
+            mov esp, [ebx + CO_SP_OFF]
+            push eax
+            pushfd
+            pushad
+            mov dword[ebx + CO_SP_OFF],esp
+            mov esp, [SPT]
+
+
+            inc dword[index]
+            jmp %%initStacksForLoop
+
+        %%endInitStacksForLoop:
+
+
 %endmacro
 section .rodata
     maxRandom: dt 0xFFFF.0
-    droneSize: dd 20 ;pid(dword),x,y,speed,angle,score, isAlive, pid
+    droneSize: dd 20 ;x,y,speed,angle,score, isAlive
     argFormat: db '%d', 0
 section .bss
     random:     resw 1
@@ -81,12 +108,16 @@ section .bss
     R:          resd 1   ;number of full scheduler cycles between each elimination
     K:          resd 1   ;how many drone steps between game board printings  
     d:          resd 1   ;(float) maximum distance that allows to destroy a target
-    drones:     resd 1    ;pointer to drone array
+    drones:     resd 1   ;pointer to drone array
     temp:       resd 1
     result:     resd 1
     dronesLeft: resd 1
     cors:       resd 1
     corsStack:  resd 1
+    numCors:    resd 1
+    curr:       resd 1
+    SPT:        resd 1
+    SPMAIN:     resd 1
 
 section .data
     index: dd 0
@@ -199,9 +230,50 @@ main:
             jmp initDronesWhileLoop
 
         endInitDronesWhileLoop:
+        mov eax, [N]
+        mov dword[numCors],eax
+        add dword[numCors],3
         initCors
+        push 0
+        call startCo
     endMain:
     ret
+
+
+;receives i as args
+getCo:
+    mov eax, [ebp + 8]
+    mul eax, COR_SIZE
+    add eax, [cors]
+    return
+
+
+;;received i (cor id) as arg
+startCo:
+    pushad                  ;backup regs
+    mov dword[SPMAIN],esp   ;[SPMAIN] backs up esp
+    mov ebx, [ebp+8]        ;ebx = cor id = i
+    mul ebx, COR_SIZE       ;ebx = i*corSize
+    add ebx, [cors]         ;ebx = cors[i]
+    jmp do_resume
+
+endCo:
+    mov esp, [SPMAIN]
+    popad
+    ;;ret?????
+resume:
+    pushfd
+    pushad
+    mov edx, [curr]
+    mov[edx + CO_SP_OFF]
+do_resume:
+    mov esp, [ebx + CO_SP_OFF]  ;esp = cors[i].SP
+    mov dword[curr],ebx         ;[curr] = cors[i]
+    popad                       ;restore previous register values
+    popfd                       ;...and flags
+    ret                         ;jump to cors[i].func()
+
+
 
 getN:
     mov eax, [N]

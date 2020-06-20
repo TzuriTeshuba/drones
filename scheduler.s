@@ -10,6 +10,59 @@
 %define COR_SCHEDULER -1
 %define COR_PRINTER -2
 %define COR_TARGET -3
+
+%macro checkForWinner 0
+    cmp dword[numActive],1
+    jne %%keepPlaying
+    mov dword[index],0
+    %%getWinnerWhileLoop:
+        
+
+    %%keepPlaying:
+%endmacro
+
+
+%macro eliminateLoser 0
+    ;hold min in eax
+    ;hold currLoser in ebx
+    ;iterate over drones and at end deactivate currLoser
+    mov dword[minScore],0x0FFFFFFF
+    mov dword[numActive],-1
+    mov dword[index],0
+    %%forLoop:
+        mov eax, [index]
+        cmp eax, [N]
+        je %%endForLoop
+        push eax
+        call getDrone
+        mov ebx, eax
+        add ebx, isAliveOffset
+        cmp dword[ebx],0
+        je %%droneNotActive
+        jmp %%droneIsActive
+            %%droneNotActive:
+                inc dword[index]
+                jmp %%forLoop
+            %%droneIsActive:
+                inc dword[numActive]
+                mov ebx, eax
+                add ebx, scoreOffset
+                mov ebx, [ebx]
+                cmp ebx, minScore
+                jl %%updateLoser
+                inc dword[index]
+                jmp %%forLoop
+                    %%updateLoser:
+                        mov dword[minScore], ebx
+                        mov dword[currLoser], eax
+                        inc dword[index]
+                        jmp forLoop
+    %%endForLoop:
+        ;;deactivate loser
+        mov eax, [currLoser]
+        add eax, isAliveOffset
+        mov dword[eax],0
+%endmacro
 section .rodata
     inValidResumeInputFormat: db 'Error: Tried to resume out of bounds co-routine', 10,0
 
@@ -18,19 +71,28 @@ section .rodata
 section .bss
 
 section .data
-    currDroneId: dd 0
-    currRound: dd 0  
-    beginning: dd 0
-    iModk: dd 0
-    iModR: dd -1
-    shouldTerminate: dd 0
+    numActive:      dd 0
+    currLoser:      dd 0
+    minScore:       dd 0
+    currDroneId:    dd 0
+    currRound:      dd 0  
+    beginning:      dd 0
+    iModk:          dd 0
+    iModR:          dd -1
+    shouldTerminate:dd 0
+    index:          dd 0
+    gameOver:       dd 1
 
 section .text
     extern N
     extern getN
     extern getK
     extern getR
-    global resume
+    extern getDrone
+    extern resume
+    extern endCo
+    extern cors
+
 
 
 
@@ -40,14 +102,14 @@ initProcesses:
 	;sub	esp, STK_RES    ;;from lab 9
 
     initTargetProcess
-    
+
 eliminateLoser:
     ret
 
 checkForWinner:
     ret
 ;;void resume(int co-routine)
-resume:
+myResume:
     mov ebx, [esp + 4]
     cmp ebx, COR_PRINTER
     je resumePrinter
@@ -99,22 +161,46 @@ resume:
     (*)print The Winner is drone: <id of the drone>
     (*) stop the game (return to main() function or exit)
 */
+;;need to check if drone is sctive...
 runScheduler:
     call getN
     cmp dword[currDroneId], eax
     jne currDroneIdIsNotN
         currDroneIdIsN:
             mov dword[currDroneId],0
+            inc dword[currRound]
         currDroneIdIsNotN:
-            resume dword[currDroneId]
-            inc dword[currDroneId]
+            push dword[currDroneId]
+            call isDroneActive
+            add esp, 4
+            cmp eax, 0
+            je currDroneNotActive
+            jmp currDroneIsActive
+                currDroneNotActive:
+                    inc dword[currDroneId]
+                    inc dword[iModk]
+                    jmp runScheduler
+
+                currDroneIsActive:
+                    mov eax, [currDroneId]
+                    add eax, 3
+                    push eax
+                    call getCo
+                    add esp, 4
+                    mov ebx, eax    ;ebx = eax = pointer to cor(drone i)
+                    call resume
+                    inc dword[currDroneId]
     
     call getK
     cmp dword[iModk], eax
     jne iModKisNotK
         iModKisK:
             mov dword[iModk],0
-            resume COR_PRINTER
+            push COR_PRINTER
+            call getCo
+            add esp, 4
+            mov ebx, eax
+            call resume
         iModKisNotK:
             inc dword[currDroneId]
 
@@ -122,17 +208,17 @@ runScheduler:
     cmp dword[currDroneId],0
     jne endLoop
         newRound:
-            inc dword[currRound]
             call getR
             cmp eax, [currRound]
             jne endLoop
-            call eliminateLoser
-            call checkForWinner
+            mov dword[currRound], 0
+            eliminateLoser
+            checkForWinner
 
     endLoop:
         cmp dword[shouldTerminate],0
         je runScheduler
-        ret
+        jmp endCo
 
 
 

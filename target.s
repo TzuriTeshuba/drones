@@ -1,3 +1,8 @@
+%define COR_SCHED 0
+%define COR_PRINTER 1
+%define COR_TARGET 2
+%define COR_SIZE 8
+
 section .rodata
 
 section .bss
@@ -7,14 +12,22 @@ section .bss
 section .data   
 
 section .text
+    global runTarget
     global getTargetX
     global getTargetY
     global generateTarget
     extern getRandomNumber
+    extern cors
+    extern getCo
 
-targetRun:
+runTarget:
     call generateTarget
-    ret
+    push COR_TARGET
+    call getCo
+    add esp, 4
+    mov ebx, eax
+    call resume
+    jmp runTarget;;this line not from slides, but i feel like it should
 
 generateTarget:
     getRandomNumber
