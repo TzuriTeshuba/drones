@@ -5,22 +5,31 @@
 
 %macro printTarget 0
     call getTargetY
-    push eax
+    mov dword[temp],eax
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+
     call getTargetX
-    push eax
+    mov dword[temp],eax
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+
     push targetFormat
     call printf
-    add esp, 12
+    add esp, 20
 %endmacro
 
 section .rodata
-    targetFormat: db 'x: %f, y: %f',10,0
+    targetFormat: db 'x: %.4f, y: %.4f',10,0
 
 section .bss
 
 section .data   
-    targetX: dd 0
-    targetY: dd 0
+    targetX:    dd 0
+    targetY:    dd 0
+    temp:       dd 0
 
 section .text
     global runTarget
@@ -63,6 +72,7 @@ generateTarget:
     call convertToFloatInRange
     add esp,12
     mov dword[targetY],eax
+    printTarget
     ret
 
 getTargetX:

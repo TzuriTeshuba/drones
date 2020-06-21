@@ -16,7 +16,90 @@
 %define PI              3.14159265359
 %define twoPi           6.28318530718
 
+;create stack on heap and return pointer in eax
+;might need to pass end of stack address
+%macro makeStack 0 
+    push STK_SIZE
+    push 1
+    call calloc
+    add eax, STK_SIZE
+%endmacro
 
+;;assumes numCors and cors has been initialized
+%macro makeStacks 0
+    mov dword[index],0
+
+    %%makeStackLoop:
+        mov eax, [index]
+        cmp eax, [numCors]
+        jge %%endMakeStackLoop
+
+        makeStack
+        add eax, STK_SIZE
+        push eax
+
+        push dword[index]
+        call getCo          ;eax = adrs of cors[i]
+        add esp, 4
+
+        add eax, CO_SP_OFF  ;eax = cors[i].SP
+        pop ebx             ;ebx = adrs of start of stack
+        mov dword[eax], ebx ;cors[i].SP = adrs of start of stack
+
+        ;;initCo(i)
+        push dword[index]
+        call getCo                      ;eax = cors + 8*i = cors[i] adrs            
+        mov ebx, [eax + CO_FUNC_OFF]    ;ebx = cors[i].func
+        mov dword[SPT], esp             ;[SPT] = esp
+        mov esp, [eax + CO_SP_OFF]      ;esp = cors[i].SP
+        push ebx                        ;push cors[i].func
+        pushfd
+        pushad
+        mov dword[eax + CO_SP_OFF],esp  ;cors[i].func = top of local stack
+        mov esp, [SPT]                  ;restore esp
+
+        inc dword[index]
+        jmp %%makeStackLoop
+    %%endMakeStackLoop:
+%endmacro
+
+%macro initFuncs 0
+    mov dword[index],0
+    %%initFuncLoop:
+        mov eax, [index]
+        cmp eax, [numCors]
+        jge %%endInitFuncLoop
+
+        push dword[index]
+        call getCo
+        add esp, 4  ;eax = cors[i] adrs = cors[i].func adrs
+
+        ;if (i=0)->scheduler  (i=1)->printer...
+        cmp dword[index], COR_SCHED
+        je %%initSchedFunc
+        cmp dword[index], COR_PRINTER
+        je %%initPrinterFunc 
+        cmp dword[index], COR_TARGET
+        je %%initTargetFunc
+        jmp %%initDroneFunc
+
+            %%initSchedFunc:
+                mov dword[eax], runScheduler
+                jmp %%afterInit
+            %%initPrinterFunc:
+                mov dword[eax], runPrinter
+                jmp %%afterInit
+            %%initTargetFunc:
+                mov dword[eax], runTarget
+                jmp %%afterInit
+            %%initDroneFunc:
+                mov dword[eax], runDrone
+                jmp %%afterInit
+        %%afterInit:
+        inc dword[index]
+        jmp %%initFuncLoop
+    %%endInitFuncLoop:
+%endmacro
 
 %macro initCors 0
     mov eax,[numCors]
@@ -25,95 +108,18 @@
     call calloc
     mov dword[cors],eax
 
-    mov eax, [numCors]
-    push eax
-    mov eax, STK_SIZE
-    call calloc
-    mov dword[corsStack], eax
-
-    mov ebx, [cors]
-    ;;cors[0] is scheduler
-    mov dword[ebx+0], runScheduler    
-    mov eax, STK_SIZE
-    add eax, [corsStack]
-    mov dword[ebx+CO_SP_OFF],eax
-
-    ;;cors[1] is printer
-    mov dword[ebx +COR_PRINTER*COR_SIZE], runPrinter
-    mov eax, STK_SIZE
-    mov ecx, COR_PRINTER + 1
-    mul ecx
-    add eax, [corsStack]
-    mov dword[ebx+COR_PRINTER*COR_SIZE+CO_SP_OFF], eax
-
-    ;;cors[2] is target
-    mov dword[ebx +COR_TARGET*COR_SIZE], runTarget
-    mov eax, STK_SIZE
-    mov ecx, COR_TARGET+1
-    mul ecx
-    add eax, [corsStack]
-    mov dword[ebx+COR_TARGET*COR_SIZE+CO_SP_OFF], eax
-
-    mov dword[index],0
-    %%initDroneCorsWhileLoop:
-        ;check condition (index < N+3)
-        mov eax, [index]
-        cmp eax, [N]
-        jge %%endInitDroneCorsWhileLoop
-
-        ;;cors[i+3] is drone i
-        mov eax, [index]
-        add eax, 3
-        mov ecx, COR_SIZE
-        mul ecx
-        add eax, [cors]
-        mov dword[eax], runDrone
-
-        mov eax, [index]
-        add eax, 4
-        mov ecx, STK_SIZE
-        mul ecx
-        add eax, [corsStack]
-
-        mov dword[ebx+CO_SP_OFF], eax
-
-        inc dword[index]
-        jmp %%initDroneCorsWhileLoop
-    %%endInitDroneCorsWhileLoop:
-    %%initStacks:
-        mov dword[index],0
-        %%initStacksForLoop:
-            ;;NOT GOOD!
-            mov eax, [index];;was ebx
-            cmp eax, [numCors];;eas ebx
-            jge %%endInitStacksForLoop
-
-            ;;initCo(i)
-            mov ecx, COR_SIZE
-            mul ecx
-            add eax, [cors]
-            mov ebx, [eax + CO_FUNC_OFF]
-            mov dword[SPT], esp
-            mov esp, [eax + CO_SP_OFF]
-            push ebx
-            pushfd
-            pushad
-            mov dword[eax + CO_SP_OFF],esp
-            mov esp, [SPT]
-
-
-            inc dword[index]
-            jmp %%initStacksForLoop
-
-        %%endInitStacksForLoop:
-
-
+    initFuncs
+    makeStacks
 %endmacro
 
 %macro printGreeting 0
     push greetingMsg
     call printf
     add esp, 4
+%endmacro
+
+%macro printCors 0
+    mov dword[index],0
 %endmacro
 
 ;;assumes arg is in temp
@@ -145,7 +151,7 @@
 %endmacro
 
 section .rodata
-    maxRandom:      dd 0x7FFF; 0111 1111 1111 1111
+    maxRandom:      dd 0xFFFF; 1111 1111 1111 1111
     droneSize:      dd 24       ;x,y,speed,angle,score, isAlive
     argIntFormat:   db '%d', 0
     argFloatFormat: db '%f',0
@@ -153,6 +159,7 @@ section .rodata
     greetingMsg:    db 'Drone Battale Royale!', 10, 0
     tempFormat:     db 'Temp: %d',10, 0
     debugRandomFormat: db 'random converted to %f', 10, 0
+
 section .bss
     random:     resw 1
     N:          resd 1   ;initial number of drones
@@ -169,9 +176,12 @@ section .bss
     curr:       resd 1
     SPT:        resd 1
     SPMAIN:     resd 1
+    debugVar:   resd 1
+    stacks:     resd 1  ;pointer to array of stack pointer
 
 section .data
     index: dd 0
+    determNum: dd 0
 
 section .text
     global greet
@@ -254,8 +264,7 @@ main:
         add esp, 12
 
         mov eax, [temp]
-        mov word[random],ax ;ax is less sig word of eax
-        debugProgArgs
+        mov word [random],ax ;ax is less sig word of eax
     
     initTarget:
         call generateTarget
@@ -266,7 +275,10 @@ main:
         call calloc
         add esp, 8
         mov dword[drones],eax
-
+        ;debug
+            ;mov dword[temp],eax
+            ;printTemp
+        ;enddebug
         mov dword[index], 0
         initDronesWhileLoop:
             ;check condition
@@ -278,8 +290,11 @@ main:
             mov eax, [droneSize]
             mul dword[index]
             add eax, [drones]   ;eax holds address of drones[index]
-
             push eax
+            ;debug
+                ;mov dword[temp], eax
+                ;printTemp
+            ;enddebug
             call getRandomNumber
             push eax
             push 100
@@ -342,7 +357,7 @@ main:
             mov dword[numCors],eax
             add dword[numCors],3
             initCors
-            push 0
+            push COR_SCHED
             call startCo
     endMain:
     ret
@@ -354,26 +369,27 @@ convertToRadians:
 ret
 ;receives i as args
 getCo:
-    mov eax, [ebp + 8]
-    mov ecx, COR_SIZE
-    mul ecx
-    add eax, [cors]
+    mov eax, [esp + 4]  ;eax = i
+    mov ecx, COR_SIZE   ;ecx = corSize = 8
+    mul ecx             ;eax = i*corSize
+    add eax, [cors]     ;eax = cors + i*corSize = cors[i] adrs
     ret
 
 
 ;;received i (cor id) as arg
 startCo:
+    mov eax, [esp+4];
+    mov dword[temp],eax;
     pushad                  ;backup regs
     mov dword[SPMAIN],esp   ;[SPMAIN] backs up esp
-    mov eax, [ebp+8]        ;ebx = cor id = i
-    mov ecx, COR_SIZE
-    mul ecx                 ;ebx = i*corSize
-    add eax, [cors]         ;ebx = cors[i]
+
+    mov eax, [temp]         ;eax = cor id = i
+    mov ecx, COR_SIZE       ;ecx = 8
+    mul ecx                 ;eax = i*corSize = 8*i
+    add eax, [cors]         ;eax = cors adrs +8*i
     mov ebx, eax
+    ;;correct address [cors] = ebx
     jmp do_resume
-
-
-
 endCo:
     mov esp, [SPMAIN]
     popad
@@ -388,7 +404,17 @@ do_resume:
     mov dword[curr],ebx         ;[curr] = cors[i]
     popad                       ;restore previous register values
     popfd                       ;...and flags
+    ;debug
+    ; pop ecx
+    ; mov dword[temp], ecx
+    ; push ecx
+    ; printTemp
+    ; mov ecx, runScheduler
+    ; mov dword[temp],ecx
+    ; printTemp
+    ;enddebug
     ret                         ;jump to cors[i].func()
+
 
 
 
@@ -420,9 +446,19 @@ getDrone:
 
     
 
+
+
+;DETERMINISTIC VERSION 1,2,3,4...
+getRandomNumber:
+    inc dword[determNum]
+    mov eax, [determNum]
+    mov word[random], ax
+    ret
+
+
 ;11th, 13th, 14th, 16th bits xor'ed 
 ;stores result in [random] and in eax
-getRandomNumber:
+getRandomNumber2:
     mov edx, 0 ;eax = i =0
     
     calcRandomhileLoop:
@@ -460,6 +496,12 @@ getRandomNumber:
         jmp calcRandomhileLoop
 
     endOfCalcRandomWhileLoop:
+    ;debug
+        ;mov eax, 0
+        ;mov ax, [random]
+        ;mov dword[temp], eax
+        ;printTemp
+    ;enddebug
         mov eax, 0
         mov ax, [random]
         ret 
@@ -472,18 +514,18 @@ convertToFloatInRange:
     sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
     mov dword[temp],eax ;[temp] = NewBound
 
-    FILD dword[maxRandom]    ;ST(0) = maxRandom = 0x7FFF
-    FIDIVR dword[temp]     ;ST(0) = NB / maxRandom
-    mov eax, [esp + 12]
+    FILD dword[maxRandom]   ;ST(0) = maxRandom = 0x7FFF
+    FIDIVR dword[temp]      ;ST(0) = NB / maxRandom
+    mov eax, [esp + 12]     ;
     mov dword[temp], eax    ;[temp] = raw number to convert = r
     FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
     FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
     FST dword[temp]         ;[temp] = ST(0)
-    debugFloatConversion
     mov eax, [temp]         ;eax holds the converted value
     ret
 
 myExit:
+    ;printGreeting
     push dword[drones]
     call free
     add esp, 4
@@ -491,10 +533,5 @@ myExit:
     push dword[cors]
     call free
     add esp, 4
-
-    push dword[corsStack]
-    call free
-    add esp, 4
-
 
 theENDDD:

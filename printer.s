@@ -47,25 +47,34 @@
 
 %macro printTarget 0
     call getTargetY
-    push eax
+    mov dword[temp],eax
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+
     call getTargetX
-    push eax
+    mov dword[temp],eax
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+
     push targetFormat
     call printf
-    add esp, 12
+    add esp, 20
 %endmacro
 
 section .rodata
-    droneFormat: db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
-    targetFormat: db 'x: %f, y: %f',10,0
-    _hexaFormat: db '%x',10,0
-    _deciFormat: db '%d',10,0
-    _calcPrompt: db "calc: ", 0
-    _format_string: db "%s", 10, 0	; format string
-    _format_string2: db "%s",' '	; format string
+    droneFormat:        db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
+    targetFormat:       db 'x: %f, y: %f',10,0
+    _hexaFormat:        db '%x',10,0
+    _deciFormat:        db '%d',10,0
+    _calcPrompt:        db "calc: ", 0
+    _format_string:     db "%s", 10, 0	; format string
+    _format_string2:    db "%s",' '	; format string
 
 section .bss
-    tempAdrs: resd 1
+    tempAdrs:   resd 1
+    temp:       resd 1
     
 section .data
     index: dd 0

@@ -112,6 +112,7 @@ section .text
     extern setCurrDrone
     extern printf
     extern myExit
+    extern greet
 
 
 ;;void setCurrDrone(int droneId)
@@ -139,6 +140,7 @@ isDroneActive:
 ;     (*)print The Winner is drone: <id of the drone>
 ;     (*) stop the game (return to main() function or exit)
 runScheduler:
+    call greet
     call getN                       ;eax = N
     cmp dword[currDroneId], eax     ;cmp currDroneId with N
     jne currDroneIdIsNotN           ;if less than N...

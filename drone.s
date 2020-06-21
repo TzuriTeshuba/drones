@@ -104,7 +104,7 @@
     jl %%speedIsNegative
     jmp %%setSpeed
         %%speedIsNegative:
-            FLZ
+            FLDZ
             jmp %%setSpeed
         %%speedTooLarge:
             FILD dword[temp]
@@ -259,7 +259,10 @@ mayDestroy:
             inc dword[eax]
             ;;need to resume target
             push COR_TARGET
-            call startCo
+            call getCo
+            add esp, 4
+            mov ebx, eax
+            call resume
 
         notInRange:
             push COR_SCHED
