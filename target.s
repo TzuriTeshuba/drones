@@ -3,7 +3,18 @@
 %define COR_TARGET 2
 %define COR_SIZE 8
 
+%macro printTarget 0
+    call getTargetY
+    push eax
+    call getTargetX
+    push eax
+    push targetFormat
+    call printf
+    add esp, 12
+%endmacro
+
 section .rodata
+    targetFormat: db 'x: %f, y: %f',10,0
 
 section .bss
 
@@ -22,6 +33,8 @@ section .text
     extern getCo
     extern getCurrDroneId
     extern convertToFloatInRange
+    extern greet
+    extern printf
 
 runTarget:
     call generateTarget
@@ -50,6 +63,8 @@ generateTarget:
     call convertToFloatInRange
     add esp,12
     mov dword[targetY],eax
+
+    call greet
 
     ret
 

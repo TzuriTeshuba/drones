@@ -116,15 +116,32 @@
     add esp, 4
 %endmacro
 
+;;assumes arg is in temp
+%macro debugFloatConversion 0
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+    push debugRandomFormat
+    call printf
+    add esp, 12
+%endmacro
+%macro printTemp 0
+    push dword[temp]
+    push tempFormat
+    call printf
+    add esp, 8
+%endmacro
 %macro debugProgArgs 0
     push dword[temp]
-    push dword[d]
+    FLD dword[d]
+    sub esp, 8
+    FSTP qword[esp]
     push dword[K]
     push dword[R]
     push dword[N]
     push argsFormat
     call printf
-    add esp, 24
+    add esp, 28
 %endmacro
 
 section .rodata
@@ -134,6 +151,8 @@ section .rodata
     argFloatFormat: db '%f',0
     argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
     greetingMsg:    db 'Drone Battale Royale!', 10, 0
+    tempFormat:     db 'Temp: %d',10, 0
+    debugRandomFormat: db 'random converted to %f', 10, 0
 section .bss
     random:     resw 1
     N:          resd 1   ;initial number of drones
@@ -155,6 +174,7 @@ section .data
     index: dd 0
 
 section .text
+    global greet
     global main
     global resume
     global getRandomNumber
@@ -183,7 +203,7 @@ section .text
 
 ;;return esp after func calls
 main:
-    printGreeting
+    ;printGreeting
     FINIT
     initArgs:
         mov eax, [esp + 4] ;eax holds int argc
@@ -191,10 +211,11 @@ main:
         cmp eax, 6  ;should be 6 args (progName, N, R, K, d, seed)
         jne endMain
 
+
         mov eax, [ebx + 4] ;eax = pointer to string rep of N
-        push eax
-        push argIntFormat
         push N
+        push argIntFormat
+        push eax
         call sscanf         ;N = (int)argv[1]
         add esp, 12
         mov eax,[N]
@@ -202,33 +223,33 @@ main:
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 8]
-        push eax
-        push argIntFormat
         push R
+        push argIntFormat
+        push eax
         call sscanf         ;R = (int)argv[2]
         add esp, 12
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 12]
-        push eax
-        push argIntFormat
         push K
+        push argIntFormat
+        push eax
         call sscanf         ;K = (int)argv[3]
         add esp, 12
 
         mov ebx, [esp + 8]
         mov eax, [ebx + 16]
-        push eax
-        push argFloatFormat
         push d
+        push argFloatFormat
+        push eax
         call sscanf         ;d = (int)argv[4]
         add esp, 12
 
         mov ebx, [esp + 8]
-        mov eax, [ebx + 16]
-        push eax
-        push argIntFormat
+        mov eax, [ebx + 20]
         push temp
+        push argIntFormat
+        push eax
         call sscanf         ;temp = (int)argv[5]
         add esp, 12
 
@@ -325,6 +346,9 @@ main:
     endMain:
     ret
 
+greet:
+    printGreeting
+    ret
 convertToRadians:
 ret
 ;receives i as args
@@ -429,9 +453,7 @@ getRandomNumber:
         shr cx, 15
         xor bx, cx
 
-        mov eax, 0
-        mov ax, 0x8000
-        mul bx              ;result is in msb of ax
+        shl bx,15              ;result is in msb of ax
         or word[random],ax  ;random has MSB replaced with result
         inc edx             ;i++
         jmp calcRandomhileLoop
@@ -456,6 +478,7 @@ convertToFloatInRange:
     FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
     FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
     FST dword[temp]         ;[temp] = ST(0)
+    debugFloatConversion
     mov eax, [temp]         ;eax holds the converted value
     ret
 
