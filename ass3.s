@@ -30,12 +30,11 @@
     mov dword[index],0
 
     %%makeStackLoop:
-        mov eax, [index]
-        cmp eax, [numCors]
+        mov eax, [index]        ;eax = i
+        cmp eax, [numCors]      ;cmp i with numCors
         jge %%endMakeStackLoop
 
-        makeStack
-        add eax, STK_SIZE
+        makeStack               
         push eax
 
         push dword[index]
@@ -118,8 +117,51 @@
     add esp, 4
 %endmacro
 
+%macro printRunFuncs 0
+    mov dword[temp], runScheduler
+    printHexTemp
+    mov dword[temp], runPrinter
+    printHexTemp
+    mov dword[temp], runTarget
+    printHexTemp
+    mov dword[temp], runDrone
+    printHexTemp
+    
+    mov eax, [runScheduler]
+    mov dword[temp], eax
+    printHexTemp
+    mov eax, [runPrinter]
+    mov dword[temp], eax
+    printHexTemp
+    mov eax, [runTarget]
+    mov dword[temp], eax
+    printHexTemp
+    mov eax, [runDrone]
+    mov dword[temp], eax
+    printHexTemp
+%endmacro
+
 %macro printCors 0
     mov dword[index],0
+    %%printCorLoop:
+        mov edx, [index]
+        cmp edx, [numCors]
+        jge %%endPrintCorsLoop
+
+        push dword[index]
+        call getCo
+        add esp, 4
+
+        push dword[eax + 4]
+        push dword[eax]
+        push dword[index]
+        push debugCorFormat
+        call printf
+        add esp, 16
+
+        inc dword[index]
+        jmp %%printCorLoop
+    %%endPrintCorsLoop:
 %endmacro
 
 ;;assumes arg is in temp
@@ -134,6 +176,12 @@
 %macro printTemp 0
     push dword[temp]
     push tempFormat
+    call printf
+    add esp, 8
+%endmacro
+%macro printHexTemp 0
+    push dword[temp]
+    push tempHexFormat
     call printf
     add esp, 8
 %endmacro
@@ -158,7 +206,10 @@ section .rodata
     argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
     greetingMsg:    db 'Drone Battale Royale!', 10, 0
     tempFormat:     db 'Temp: %d',10, 0
+    tempHexFormat:     db 'Temp: 0x%X',10, 0
     debugRandomFormat: db 'random converted to %f', 10, 0
+    debugCorFormat: db 'id: %d, funcAdrs: %08X, stkPtr: %08X', 10, 0
+
 
 section .bss
     random:     resw 1
@@ -357,6 +408,8 @@ main:
             mov dword[numCors],eax
             add dword[numCors],3
             initCors
+            ;;printRunFuncs
+            ;;printCors
             push COR_SCHED
             call startCo
     endMain:
@@ -405,13 +458,13 @@ do_resume:
     popad                       ;restore previous register values
     popfd                       ;...and flags
     ;debug
-    ; pop ecx
-    ; mov dword[temp], ecx
-    ; push ecx
-    ; printTemp
-    ; mov ecx, runScheduler
-    ; mov dword[temp],ecx
-    ; printTemp
+        ; pop ecx
+        ; mov dword[temp], ecx
+        ; push ecx
+        ; printHexTemp
+        ; mov ecx, runScheduler
+        ; mov dword[temp],ecx
+        ; printHexTemp
     ;enddebug
     ret                         ;jump to cors[i].func()
 
