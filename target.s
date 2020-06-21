@@ -63,9 +63,6 @@ generateTarget:
     call convertToFloatInRange
     add esp,12
     mov dword[targetY],eax
-
-    call greet
-
     ret
 
 getTargetX:

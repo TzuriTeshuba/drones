@@ -39,7 +39,7 @@
     ;;X
     FINIT
     FLD dword[angle]    ;ST(0) = angle
-    FCOS                ;ST(0) = cos(angle)
+    FCOS                ;ST(0) = cos(ST0) = cos(angle)
     FMUL dword[speed]   ;ST(0) = speed*cos(angle)
     FADD dword[xPos]    ;ST(0) = x + speed*cos(angle)
     mov dword[temp],0
@@ -50,9 +50,11 @@
     jg %%xTooLarge
     jmp %%setX
         %%xIsNegative:
+            mov dword[temp], 100
             FIADD dword[temp]
             jmp %%setX
         %%xTooLarge:
+            mov dword[temp], 100
             FISUB dword[temp]
             jmp %%setX
         %%setX:
@@ -72,9 +74,11 @@
     jg %%yTooLarge
     jmp %%setY
         %%yIsNegative:
+            mov dword[temp], 100
             FADD dword[temp]
             jmp %%setY
         %%yTooLarge:
+            mov dword[temp], 100
             FSUB dword[temp]
             jmp %%setY
         %%setY:
@@ -94,8 +98,15 @@
     FADDP 
     mov dword[temp],100
     FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
-    jl %%setSpeed
-        %%clampSpeed:
+    jg %%speedTooLarge
+    mov dword[temp],0
+    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
+    jl %%speedIsNegative
+    jmp %%setSpeed
+        %%speedIsNegative:
+            FLZ
+            jmp %%setSpeed
+        %%speedTooLarge:
             FILD dword[temp]
         %%setSpeed:
             FST dword[speed]

@@ -11,7 +11,7 @@
 %define COR_PRINTER -2
 %define COR_TARGET -3
 
-;;checks if there is a winner. if yes: prints winner and sets gameOver flag
+;;checks if there is a winner. if yes: prints winner and sets gameOver flag and exit program
 ;;pre-condition: numActive holds number of active drones
 %macro checkForWinner 0
     cmp dword[numActive],1
@@ -37,7 +37,7 @@
     %%keepPlaying:
 %endmacro
 
-;;deactivates drones with lowest score. if multiple, than one with lowest id
+;;deactivates drone with lowest score. if multiple, than one with lowest id
 %macro eliminateLoser 0
     ;hold min in eax
     ;hold currLoser in ebx
@@ -93,9 +93,8 @@ section .data
     minScore:       dd 0
     currDroneId:    dd 0
     currRound:      dd 0  
-    beginning:      dd 0
     iModk:          dd 0
-    iModR:          dd -1
+    beginning:      dd 0
     index:          dd 0
     gameOver:       dd 0
 
@@ -140,11 +139,11 @@ isDroneActive:
 ;     (*)print The Winner is drone: <id of the drone>
 ;     (*) stop the game (return to main() function or exit)
 runScheduler:
-    call getN
-    cmp dword[currDroneId], eax
-    jne currDroneIdIsNotN
-        currDroneIdIsN:
-            mov dword[currDroneId],0
+    call getN                       ;eax = N
+    cmp dword[currDroneId], eax     ;cmp currDroneId with N
+    jne currDroneIdIsNotN           ;if less than N...
+        currDroneIdIsN:             ;else id>=N, let id=0 and increment round
+            mov dword[currDroneId],0    
             inc dword[currRound]
         currDroneIdIsNotN:
             push dword[currDroneId]
@@ -165,17 +164,17 @@ runScheduler:
                     mov ebx, eax    ;ebx = eax = pointer to cor(drone i)
                     call resume
     printerCheck:
-    call getK
-    cmp dword[iModk], eax
-    jne iModKisNotK
-        iModKisK:
-            mov dword[iModk],0
-            push COR_PRINTER
-            call getCo
-            add esp, 4
-            mov ebx, eax
-            call resume
-        iModKisNotK:
+        call getK
+        cmp dword[iModk], eax
+        jne iModKisNotK
+            iModKisK:
+                mov dword[iModk],0
+                push COR_PRINTER
+                call getCo
+                add esp, 4
+                mov ebx, eax
+                call resume
+            iModKisNotK:
     ;;how many rounds passed
     cmp dword[currDroneId],0
     jne endLoop

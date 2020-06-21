@@ -7,6 +7,7 @@
 
 %define CO_FUNC_OFF     0
 %define CO_SP_OFF       4
+
 %define COR_SCHED       0
 %define COR_PRINTER     1
 %define COR_TARGET      2
@@ -18,15 +19,13 @@
 
 
 %macro initCors 0
-    mov eax,[N]
-    add eax, 3
+    mov eax,[numCors]
     push eax
     push COR_SIZE
     call calloc
     mov dword[cors],eax
 
-    mov eax, [N]
-    add eax, 3
+    mov eax, [numCors]
     push eax
     mov eax, STK_SIZE
     call calloc
@@ -34,7 +33,7 @@
 
     mov ebx, [cors]
     ;;cors[0] is scheduler
-    mov dword[ebx], runScheduler
+    mov dword[ebx+0], runScheduler    
     mov eax, STK_SIZE
     add eax, [corsStack]
     mov dword[ebx+CO_SP_OFF],eax
@@ -84,6 +83,7 @@
     %%initStacks:
         mov dword[index],0
         %%initStacksForLoop:
+            ;;NOT GOOD!
             mov eax, [index];;was ebx
             cmp eax, [numCors];;eas ebx
             jge %%endInitStacksForLoop
@@ -145,7 +145,7 @@
 %endmacro
 
 section .rodata
-    maxRandom:      dt 0xFFFF.0
+    maxRandom:      dd 0x7FFF; 0111 1111 1111 1111
     droneSize:      dd 24       ;x,y,speed,angle,score, isAlive
     argIntFormat:   db '%d', 0
     argFloatFormat: db '%f',0
@@ -264,6 +264,7 @@ main:
         push dword[N]
         push dword[droneSize]
         call calloc
+        add esp, 8
         mov dword[drones],eax
 
         mov dword[index], 0
@@ -276,19 +277,19 @@ main:
             mov edx, 0;;TODO - check edx is 0 after multiplying
             mov eax, [droneSize]
             mul dword[index]
-            add eax, [drones]   ;ebx holds address of drones[index]
+            add eax, [drones]   ;eax holds address of drones[index]
 
             push eax
             call getRandomNumber
             push eax
             push 100
             push 0
-            call convertToFloatInRange
+            call convertToFloatInRange  ;eax = xPos in [0,100] range
             add esp, 12
-            pop ebx
+            pop ebx                     ;ebx holds drones[i] pointer
             mov ecx, xOffset
             add ecx, ebx
-            mov dword[ecx], eax   ;init x
+            mov dword[ecx], eax         ;init x
 
             push ebx
             call getRandomNumber
@@ -337,12 +338,12 @@ main:
             jmp initDronesWhileLoop
 
         endInitDronesWhileLoop:
-        mov eax, [N]
-        mov dword[numCors],eax
-        add dword[numCors],3
-        initCors
-        push 0
-        call startCo
+            mov eax, [N]
+            mov dword[numCors],eax
+            add dword[numCors],3
+            initCors
+            push 0
+            call startCo
     endMain:
     ret
 
@@ -466,14 +467,14 @@ getRandomNumber:
 ;;expect first arg/pop be lower bound, second to be upper bound, third is the raw number
 convertToFloatInRange:
     finit               ;initialize x87 FP Subsystem
-    mov ebx, [esp + 8] ;ebx = lower bound
-    mov eax, [esp + 12] ;eax = upper bound
+    mov ebx, [esp + 4]  ;ebx = lower bound
+    mov eax, [esp + 8] ;eax = upper bound
     sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
-    mov dword[temp],eax
+    mov dword[temp],eax ;[temp] = NewBound
 
-    FLD tword[maxRandom]    ;ST(0) = maxRandom = 0xFFFF
+    FILD dword[maxRandom]    ;ST(0) = maxRandom = 0x7FFF
     FIDIVR dword[temp]     ;ST(0) = NB / maxRandom
-    mov eax, [esp + 16]
+    mov eax, [esp + 12]
     mov dword[temp], eax    ;[temp] = raw number to convert = r
     FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
     FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
