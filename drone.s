@@ -11,6 +11,12 @@
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
+%macro printHexTemp 0
+    push dword[temp]
+    push tempHexFormat
+    call printf
+    add esp, 8
+%endmacro
 
 ;;should be good
 ;;moves drones fields to local variables
@@ -177,6 +183,7 @@
 
 section .rodata
     twoPi: dd 6.28318530718
+    tempHexFormat: db 'dTemp: 0x%X',10, 0
 section .bss
 
 section .data
@@ -204,6 +211,9 @@ section .text
     extern getCo
     extern resume
     extern startCo
+    extern greet
+    extern runTarget
+    extern printf
 
 
 
@@ -221,6 +231,15 @@ runDrone:
     call getCo
     add esp, 4
     mov ebx, eax
+    ;debug
+        ;push ebx
+        ;mov dword[temp], ebx
+        ;printHexTemp
+        ;mov ecx, runTarget
+        ;mov dword[temp],ecx
+        ;printHexTemp
+    ;enddebug
+    pop ebx
     call resume
     jmp runDrone
 

@@ -1,48 +1,64 @@
 %define xOffset 0
-%define yOffset 2
-%define speedOffset 4
-%define angleOffset 6
-%define scoreOffset 8
-%define isAliveOffset 12
-%define DRONE_SIZE 16
+%define yOffset 4
+%define speedOffset 8
+%define angleOffset 12
+%define scoreOffset 16
+%define isAliveOffset 20
+%define DRONE_SIZE 24
 
 %define COR_SCHED 0
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
-;not good, just prints int value of regs
 ;void printDrone(int droneId)
-%macro printDrone 1
-    mov eax, %1
-    ;;push id
-    push eax
+%macro printDrone 0
+    push dword[index]                ;push id for getDrone
     call getDrone           ;eax should hold pointer to drone
+    add esp, 4
     mov dword[tempAdrs],eax ;eax hold pointer to drone
 
-    ;;push x coordinate float
-    mov eax, [tempAdrs]
-    add eax, xOffset    ;eax = adrs of drones[i].x
-    push dword[eax]
-    ;;push y coordinate float
-    mov eax, [tempAdrs]
-    add eax, yOffset
-    push dword[eax]
-    ;;push speed float
-    mov eax, [tempAdrs]
-    add eax, speedOffset
-    push dword[eax]
-    ;;push angle float
-    mov eax, [tempAdrs]
-    add eax, angleOffset
-    push dword[eax]
+    FINIT
+
     ;;push score int
     mov eax, [tempAdrs]
     add eax, scoreOffset
     push dword[eax]
+
+    ;;push angle float
+    mov eax, [tempAdrs]
+    add eax, angleOffset    ;eax = adrs of drones[i].x
+    ;;TODO: convert to degrees
+    FLD dword[eax]
+    sub esp, 8
+    FSTP qword[esp]
+
+    ;;push speed float
+    mov eax, [tempAdrs]
+    add eax, speedOffset    ;eax = adrs of drones[i].x
+    FLD dword[eax]
+    sub esp, 8
+    FSTP qword[esp]
+
+    ;;push y coordinate float
+    mov eax, [tempAdrs]
+    add eax, yOffset    ;eax = adrs of drones[i].x
+    FLD dword[eax]
+    sub esp, 8
+    FSTP qword[esp]
+
+    ;;push x coordinate float
+    mov eax, [tempAdrs]
+    add eax, xOffset    ;eax = adrs of drones[i].x
+    FLD dword[eax]
+    sub esp, 8
+    FSTP qword[esp]
+
+    ;;push id
+    push dword[index]
     ;;push format
     push droneFormat
     call printf
-    add esp, 28
+    add esp, 44
 %endmacro
 
 %macro printTarget 0
@@ -64,8 +80,8 @@
 %endmacro
 
 section .rodata
-    droneFormat:        db 'id: %d\tX: %f\tY: %f\tSpeed: %f\tAngle: %f\tScore: %d',10,0
-    targetFormat:       db 'x: %f, y: %f',10,0
+    droneFormat:        db "id: %d  X: %.3f  Y: %.3f  Speed: %.3f  Angle: %.3f  Score: %d",10,0
+    targetFormat:       db 'target) x: %f, y: %f',10,0
     _hexaFormat:        db '%x',10,0
     _deciFormat:        db '%d',10,0
     _calcPrompt:        db "calc: ", 0
@@ -102,8 +118,7 @@ runPrinter:
         cmp dword[index],eax
         jge endDronePrintForLoop
         ;print drones[i]
-        mov eax, [index]
-        printDrone eax
+        printDrone
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:

@@ -1,16 +1,22 @@
 %define xOffset 0
-%define yOffset 2
-%define speedOffset 4
-%define angleOffset 6
-%define scoreOffset 8
-%define isAliveOffset 12
-%define DRONE_SIZE 16
+%define yOffset 4
+%define speedOffset 8
+%define angleOffset 12
+%define scoreOffset 16
+%define isAliveOffset 20
+%define DRONE_SIZE 24
 
 %define THREAD_SIZE 4000
-%define COR_SCHEDULER -1
-%define COR_PRINTER -2
-%define COR_TARGET -3
+%define COR_SCHEDULER 0
+%define COR_PRINTER 1
+%define COR_TARGET 2
 
+%macro printHexTemp 0
+    push dword[temp]
+    push tempHexFormat
+    call printf
+    add esp, 8
+%endmacro
 ;;checks if there is a winner. if yes: prints winner and sets gameOver flag and exit program
 ;;pre-condition: numActive holds number of active drones
 %macro checkForWinner 0
@@ -84,6 +90,7 @@
 section .rodata
     inValidResumeInputFormat: db 'Error: Tried to resume out of bounds co-routine', 10,0
     winnerFormat: db 'The winner is Drone #%d',10,0
+    tempHexFormat: db 'sTemp: 0x%X',10, 0
 
 section .bss
 
@@ -97,6 +104,7 @@ section .data
     beginning:      dd 0
     index:          dd 0
     gameOver:       dd 0
+    temp:           dd 0
 
 section .text
     global getCurrDroneId
@@ -113,6 +121,7 @@ section .text
     extern printf
     extern myExit
     extern greet
+    extern runDrone
 
 
 ;;void setCurrDrone(int droneId)
@@ -123,8 +132,10 @@ getCurrDroneId:
 isDroneActive:
     push dword[currDroneId]
     call getDrone
+    add esp, 4
     add eax, isAliveOffset
     mov eax, [eax]
+    ret
 
 
 ; (*) start from i=0
@@ -150,6 +161,7 @@ runScheduler:
             push dword[currDroneId]
             call isDroneActive
             add esp, 4
+
             cmp eax, 0
             je currDroneNotActive
             jmp currDroneIsActive
@@ -163,6 +175,15 @@ runScheduler:
                     call getCo
                     add esp, 4
                     mov ebx, eax    ;ebx = eax = pointer to cor(drone i)
+                        ;debug
+                            ;push ebx
+                            ;mov dword[temp], ebx
+                            ;printHexTemp
+                            ;mov ecx, runDrone
+                            ;mov dword[temp],ecx
+                            ;printHexTemp
+                            ;pop ebx
+                        ;enddebug
                     call resume
     printerCheck:
         call getK

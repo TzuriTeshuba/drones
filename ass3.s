@@ -142,6 +142,11 @@
 %endmacro
 
 %macro printCors 0
+    ;;print cors adrs
+    mov eax, [cors]
+    mov dword[temp],eax
+    printHexTemp
+    ;print coroutines {id, func adrs, StkPtr}
     mov dword[index],0
     %%printCorLoop:
         mov edx, [index]
@@ -206,7 +211,7 @@ section .rodata
     argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
     greetingMsg:    db 'Drone Battale Royale!', 10, 0
     tempFormat:     db 'Temp: %d',10, 0
-    tempHexFormat:     db 'Temp: 0x%X',10, 0
+    tempHexFormat:     db 'aTemp: 0x%X',10, 0
     debugRandomFormat: db 'random converted to %f', 10, 0
     debugCorFormat: db 'id: %d, funcAdrs: %08X, stkPtr: %08X', 10, 0
 
@@ -326,10 +331,6 @@ main:
         call calloc
         add esp, 8
         mov dword[drones],eax
-        ;debug
-            ;mov dword[temp],eax
-            ;printTemp
-        ;enddebug
         mov dword[index], 0
         initDronesWhileLoop:
             ;check condition
@@ -342,10 +343,7 @@ main:
             mul dword[index]
             add eax, [drones]   ;eax holds address of drones[index]
             push eax
-            ;debug
-                ;mov dword[temp], eax
-                ;printTemp
-            ;enddebug
+
             call getRandomNumber
             push eax
             push 100
@@ -408,8 +406,8 @@ main:
             mov dword[numCors],eax
             add dword[numCors],3
             initCors
-            ;;printRunFuncs
-            ;;printCors
+            ;printRunFuncs
+            ;printCors
             push COR_SCHED
             call startCo
     endMain:
@@ -457,15 +455,6 @@ do_resume:
     mov dword[curr],ebx         ;[curr] = cors[i]
     popad                       ;restore previous register values
     popfd                       ;...and flags
-    ;debug
-        ; pop ecx
-        ; mov dword[temp], ecx
-        ; push ecx
-        ; printHexTemp
-        ; mov ecx, runScheduler
-        ; mov dword[temp],ecx
-        ; printHexTemp
-    ;enddebug
     ret                         ;jump to cors[i].func()
 
 
@@ -491,9 +480,9 @@ getDrones:
 ;assumes dword of index was pushed
 ;SHOULD NOT USE ecx
 getDrone:
-    mov eax, [ebp + 8]      ;eax = i
+    mov eax, [esp + 4]      ;eax = i
     mov ecx, [droneSize]
-    mul ecx    ;eax = droneSize*i
+    mul ecx                 ;eax = droneSize*i
     add eax, [drones]       ;eax = adrs of drones[i]
     ret
 
