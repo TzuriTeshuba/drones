@@ -452,9 +452,11 @@ startCo:
     ;;correct address [cors] = ebx
     jmp do_resume
 endCo:
+    call greet
     mov esp, [SPMAIN]
     popad
-    ;;ret?????
+    call myExit
+    ;;;ret
 resume:
     pushfd
     pushad
@@ -577,13 +579,15 @@ convertToFloatInRange:
     ret
 
 myExit:
-    ;printGreeting
-    push dword[drones]
-    call free
-    add esp, 4
-
-    push dword[cors]
-    call free
-    add esp, 4
+    mov al, 1
+    mov ebx, 0
+    int 0x80
+    ;push dword[drones]
+    ;call free
+    ;add esp, 4
+;
+    ;push dword[cors]
+    ;call free
+    ;add esp, 4
 
 theENDDD:

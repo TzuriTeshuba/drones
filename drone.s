@@ -183,8 +183,6 @@
             FST dword[angle]
 
     storeFieldValues
-    call greet
-    debugFields
     
     ;;update position
 %endmacro
@@ -252,6 +250,7 @@ section .text
     extern greet
     extern runTarget
     extern printf
+    extern generateTarget
 
 
 
@@ -277,36 +276,34 @@ runDrone:
         ;mov dword[temp],ecx
         ;printHexTemp
     ;enddebug
-    pop ebx
+    ;pop ebx
     call resume
     jmp runDrone
 
 mayDestroy:
-    call getTargetX
-    mov dword[tx],eax
-    call getTargetY
-    mov dword[ty],eax
+    call    getTargetX
+    mov     dword[tx],eax
+    call    getTargetY
+    mov     dword[ty],eax
 
     FINIT
-    FLD dword[tx]
-    FSUB dword[xPos]
-    FLD ST0
-    FMUL ST0, ST1
-    FST dword[temp]
+    FLD     dword[tx]
+    FSUB    dword[xPos]
+    FMUL    ST0, ST0
+    FST     dword[temp]
 
     FINIT
-    FLD dword[ty]
-    FSUB dword[yPos]
-    FLD ST0
-    FMUL ST0, ST1
+    FLD     dword[ty]
+    FSUB    dword[yPos]
+    FMUL    ST0, ST0
 
-    FLD dword[temp]
-    FADD ST0,ST1
+    FLD     dword[temp]
+    FADD    ST0,ST1
 
     FSQRT       ;ST(0) = sqrt( (xt-xd)^2 + (yt-yd)^2 )
-    call getD
-    mov dword[temp], eax
-    FCOM dword[temp]    ;comp ST(0) with d
+    call    getD
+    mov     dword[temp], eax
+    FCOM    dword[temp]    ;comp ST(0) with d
 
     jbe destroyTarget
     jmp notInRange
@@ -315,18 +312,12 @@ mayDestroy:
             add eax, scoreOffset
             inc dword[eax]
             ;;need to resume target
-            push COR_TARGET
-            call getCo
-            add esp, 4
-            mov ebx, eax
-            call resume
-
+            ;push COR_TARGET
+            ;call getCo
+            ;add esp, 4
+            ;mov ebx, eax
+            ;call resume
         notInRange:
-            push COR_SCHED
-            call getCo
-            add esp, 4
-            mov ebx, eax
-            call resume
     ret
 
 

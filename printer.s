@@ -126,8 +126,8 @@ convertRadiansToDegrees:
     FST dword[temp]
     mov eax, [temp]
     ret
-    
-runPrinter:
+
+printGame:
     ;print target x,y -> stats of all drones -> suspend own process -> repeat
     printTarget
     mov dword[index],0
@@ -141,11 +141,21 @@ runPrinter:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
-        push COR_SCHED
-        call getCo
-        add esp, 4
-        mov ebx, eax
-        call resume
+        ret
+
+
+runPrinter:
+    ;print target x,y -> stats of all drones -> suspend own process -> repeat
+    call printGame
+    ;;resume scheduler
+    push COR_SCHED
+    call getCo
+    add esp, 4
+    mov ebx, eax
+    call resume
+    jmp runPrinter
+
+
 
 
 

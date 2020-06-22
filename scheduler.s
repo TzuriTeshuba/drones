@@ -105,6 +105,7 @@ section .data
     index:          dd 0
     gameOver:       dd 0
     temp:           dd 0
+    counter:        dd 0
 
 section .text
     global getCurrDroneId
@@ -123,6 +124,7 @@ section .text
     extern greet
     extern runDrone
     extern runPrinter
+    extern printGame
 
 
 ;;void setCurrDrone(int droneId)
@@ -212,6 +214,11 @@ runScheduler:
     endLoop:
         inc dword[currDroneId]
         inc dword[iModk]
+        inc dword[counter]
+
+        cmp dword[counter], 100
+        jge endCo
+
         cmp dword[gameOver],0
         je runScheduler
         jmp endCo
