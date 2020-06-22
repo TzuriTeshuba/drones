@@ -16,7 +16,14 @@
     call getDrone           ;eax should hold pointer to drone
     add esp, 4
     mov dword[tempAdrs],eax ;eax hold pointer to drone
-
+    add eax, isAliveOffset
+    cmp dword[eax],0
+    je %%statusNotActive
+            push ActiveFormat
+            jmp %%statusActiveOrNot
+        %%statusNotActive:
+            push notActiveFormat       
+    %%statusActiveOrNot:
     FINIT
 
     ;;push score int
@@ -64,7 +71,9 @@
     ;;push format
     push droneFormat
     call printf
-    add esp, 44
+
+
+    add esp, 48
 %endmacro
 
 %macro printTarget 0
@@ -86,7 +95,9 @@
 %endmacro
 
 section .rodata
-    droneFormat:        db "id: %d  X: %.3f  Y: %.3f  Speed: %.3f  Angle: %.3f  Score: %d",10,0
+    droneFormat:        db "id: %d  X: %.3f  Y: %.3f  Speed: %.3f  Angle: %.3f  Score: %d  Status: %s", 10, 0
+    ActiveFormat:       db 'ACTIVE',0
+    notActiveFormat:    db 'LOST',0
     targetFormat:       db 'target) x: %f, y: %f',10,0
     _hexaFormat:        db '%x',10,0
     _deciFormat:        db '%d',10,0
@@ -145,7 +156,7 @@ printGame:
 
 
 runPrinter:
-    ;print target x,y -> stats of all drones -> suspend own process -> repeat
+    ;print target x,y -> stats of all drones -> resume scheduler -> repeat
     call printGame
     ;;resume scheduler
     push COR_SCHED

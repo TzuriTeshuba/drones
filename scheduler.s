@@ -52,40 +52,41 @@
     mov dword[numActive],-1
     mov dword[index],0
     %%forLoop:
-        call getN
-        mov ebx, eax
-        mov eax, [index]
-        cmp eax, ebx
-        je %%endForLoop
-        push ebx
-        call getDrone
-        mov ebx, eax
-        add ebx, isAliveOffset
-        cmp dword[ebx],0
+        call    getN                ;eax = N
+        mov     ebx, eax            ;ebx = N
+        mov     eax, [index]        ;eax = i
+        cmp     eax, ebx            ;if i<= N endForLoop
+        je %%endForLoop 
+        push    eax                 ;push i
+        call    getDrone            ;eax = drones[i] adrs
+        add     esp,4   
+        mov     ebx, eax            ;ebx = drones[i] adrs
+        add     ebx, isAliveOffset  ;ebx = drones[i].status adrs
+        cmp     dword[ebx],0        ;if status = 0 => not active
         je %%droneNotActive
         jmp %%droneIsActive
             %%droneNotActive:
-                inc dword[index]
-                jmp %%forLoop
+                inc dword[index]    ;i++
+                jmp %%forLoop       ;try next drone
             %%droneIsActive:
-                inc dword[numActive]
-                mov ebx, eax
-                add ebx, scoreOffset
-                mov ebx, [ebx]
-                cmp ebx, minScore
+                inc dword[numActive];numActive++
+                mov ebx, eax        ;ebx = drones[i] adrs
+                add ebx, scoreOffset;ebx = drones[i].score adrs
+                mov ebx, [ebx]      ;ebx = drones[i].score
+                cmp ebx, minScore   ;if score < minScore => you currLoser
                 jl %%updateLoser
-                inc dword[index]
+                inc dword[index]    ;else i++ and try next drone
                 jmp %%forLoop
                     %%updateLoser:
-                        mov dword[minScore], ebx
-                        mov dword[currLoser], eax
-                        inc dword[index]
-                        jmp %%forLoop
+                        mov dword[minScore], ebx    ;minScore = drones[i].score
+                        mov dword[currLoser], eax   ;currLoser = drones[i] adrs 
+                        inc dword[index]            ;i++
+                        jmp %%forLoop               ;try next drone
     %%endForLoop:
         ;;deactivate loser
-        mov eax, [currLoser]
-        add eax, isAliveOffset
-        mov dword[eax],0
+        mov eax, [currLoser]    ;eax = adrs of loser
+        add eax, isAliveOffset  ;eax = loser.status adrs
+        mov dword[eax],0        ;loser.status = 0
 %endmacro
 section .rodata
     inValidResumeInputFormat: db 'Error: Tried to resume out of bounds co-routine', 10,0
@@ -164,7 +165,6 @@ runScheduler:
             push dword[currDroneId]
             call isDroneActive
             add esp, 4
-
             cmp eax, 0
             je currDroneNotActive
             jmp currDroneIsActive

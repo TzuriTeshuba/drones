@@ -341,7 +341,10 @@ main:
             mov eax, [droneSize]    ;eax = droneSize
             mul dword[index]        ;eax = i*droneSize
             add eax, [drones]       ;eax holds address of drones[i]
-            push eax
+            push eax                ;save for popping later
+
+            add eax, isAliveOffset
+            mov dword[eax],1
 
             call getRandomNumber
             push eax
@@ -392,10 +395,6 @@ main:
             mov ecx, angleOffset
             add ecx, ebx
             mov dword[ecx], eax   ;init angle
-
-            mov ecx, isAliveOffset
-            add ecx, ebx
-            mov dword[ecx],1
 
             inc dword[index]
             jmp initDronesWhileLoop

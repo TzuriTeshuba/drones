@@ -100,10 +100,10 @@
 
     ;;Y
     FINIT
-    FLD dword[angle]    ;ST(0) = angle
-    FSIN                ;ST(0) = cos(angle)
-    FMUL dword[speed]   ;ST(0) = speed*cos(angle)
-    FADD dword[yPos]    ;ST(0) = x + speed*cos(angle)
+    FLD     dword[angle]    ;ST(0) = angle
+    FSIN                    ;ST(0) = cos(ST0) = cos(angle)
+    FMUL    dword[speed]    ;ST(0) = speed*cos(angle)
+    FADD    dword[yPos]     ;ST(0) = x + speed*cos(angle)
     FLDZ
     FCOMIP
     ja %%yIsNegative
@@ -113,12 +113,12 @@
     jb %%yTooLarge
     jmp %%setY
         %%yIsNegative:
-            mov dword[temp], 100
-            FADD dword[temp]
+            mov     dword[temp], 100
+            FIADD   dword[temp]
             jmp %%setY
         %%yTooLarge:
-            mov dword[temp], 100
-            FSUB dword[temp]
+            mov     dword[temp], 100
+            FISUB   dword[temp]
             jmp %%setY
         %%setY:
             FST dword[yPos]     ;[yPos] = ST(0)
@@ -301,11 +301,13 @@ mayDestroy:
     FADD    ST0,ST1
 
     FSQRT       ;ST(0) = sqrt( (xt-xd)^2 + (yt-yd)^2 )
+
     call    getD
     mov     dword[temp], eax
-    FCOM    dword[temp]    ;comp ST(0) with d
+    FLD     dword[temp]
+    FCOMIP       ;comp distance with d
 
-    jbe destroyTarget
+    jae destroyTarget
     jmp notInRange
         destroyTarget:
             mov eax, [currDrone]
