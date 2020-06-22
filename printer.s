@@ -26,13 +26,17 @@
 
     ;;push angle float
     mov eax, [tempAdrs]
-    add eax, angleOffset    ;eax = adrs of drones[i].x
-    ;;TODO: convert to degrees
-    FLD dword[eax]
+    add eax, angleOffset    ;eax = adrs of drones[i].angle
+    push dword[eax]
+    call convertRadiansToDegrees
+    add esp, 4
+    mov dword[temp], eax ;temp = degrees
+    FLD dword[temp]
     sub esp, 8
     FSTP qword[esp]
 
     ;;push speed float
+    FINIT
     mov eax, [tempAdrs]
     add eax, speedOffset    ;eax = adrs of drones[i].x
     FLD dword[eax]
@@ -40,6 +44,7 @@
     FSTP qword[esp]
 
     ;;push y coordinate float
+    FINIT
     mov eax, [tempAdrs]
     add eax, yOffset    ;eax = adrs of drones[i].x
     FLD dword[eax]
@@ -47,6 +52,7 @@
     FSTP qword[esp]
 
     ;;push x coordinate float
+    FINIT
     mov eax, [tempAdrs]
     add eax, xOffset    ;eax = adrs of drones[i].x
     FLD dword[eax]
@@ -106,7 +112,20 @@ section .text
     extern getCo
     extern resume
     extern printf
+    extern greet
 
+convertRadiansToDegrees:
+    mov eax, [esp + 4]      ;eax = radians
+    FINIT
+    mov dword[temp], eax
+    FLD dword[temp]         ;ST0 = radians
+    mov dword[temp], 180
+    FIMUL dword[temp]       ;ST0 =  180*radians
+    FLDPI                   ;ST0=pi, ST1 = 180*radians
+    FDIVR ST0, ST1           ;ST0 = pi*degrees
+    FST dword[temp]
+    mov eax, [temp]
+    ret
     
 runPrinter:
     ;print target x,y -> stats of all drones -> suspend own process -> repeat

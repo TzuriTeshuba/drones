@@ -6,7 +6,7 @@
 %define isAliveOffset 20
 %define DRONE_SIZE 24
 
-%define THREAD_SIZE 4000
+%define THREAD_SIZE 4096
 %define COR_SCHEDULER 0
 %define COR_PRINTER 1
 %define COR_TARGET 2
@@ -122,6 +122,7 @@ section .text
     extern myExit
     extern greet
     extern runDrone
+    extern runPrinter
 
 
 ;;void setCurrDrone(int droneId)

@@ -44,24 +44,24 @@
     ;;calc x,y, newSpeed, newAngle
     ;;X
     FINIT
-    FLD dword[angle]    ;ST(0) = angle
-    FCOS                ;ST(0) = cos(ST0) = cos(angle)
-    FMUL dword[speed]   ;ST(0) = speed*cos(angle)
-    FADD dword[xPos]    ;ST(0) = x + speed*cos(angle)
-    mov dword[temp],0
-    FICOM dword[temp]
+    FLD     dword[angle]    ;ST(0) = angle
+    FCOS                    ;ST(0) = cos(ST0) = cos(angle)
+    FMUL    dword[speed]    ;ST(0) = speed*cos(angle)
+    FADD    dword[xPos]     ;ST(0) = x + speed*cos(angle)
+    mov     dword[temp],0
+    FICOM   dword[temp] 
     jl %%xIsNegative
-    mov dword[temp],100
-    FICOM dword[temp]
+    mov     dword[temp],100
+    FICOM   dword[temp]
     jg %%xTooLarge
     jmp %%setX
         %%xIsNegative:
-            mov dword[temp], 100
-            FIADD dword[temp]
+            mov     dword[temp], 100
+            FIADD   dword[temp]
             jmp %%setX
         %%xTooLarge:
-            mov dword[temp], 100
-            FISUB dword[temp]
+            mov     dword[temp], 100
+            FISUB   dword[temp]
             jmp %%setX
         %%setX:
             FST dword[xPos]     ;[xPos] = ST(0)
@@ -88,7 +88,7 @@
             FSUB dword[temp]
             jmp %%setY
         %%setY:
-            FST dword[yPos]     ;[xPos] = ST(0)
+            FST dword[yPos]     ;[yPos] = ST(0)
 
     ;;newSpeed
     FINIT
@@ -158,10 +158,10 @@
 %macro storeFieldValues 0
     mov eax, [currDrone]
 
-    mov ebx, xOffset
-    add ebx, eax
-    mov ecx, [xPos]
-    mov dword[ebx], ecx
+    mov ebx, xOffset        ;ebx = xOffset
+    add ebx, eax            ;ebx = drone.x adrs
+    mov ecx, [xPos]         ;ecx = x
+    mov dword[ebx], ecx     ;drone.x = x
 
     mov ebx, yOffset
     add ebx, eax

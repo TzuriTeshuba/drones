@@ -237,7 +237,7 @@ section .bss
 
 section .data
     index: dd 0
-    determNum: dd 0
+    determNum: dd 0x8FFF
 
 section .text
     global greet
@@ -276,7 +276,6 @@ main:
         mov ebx, [esp + 8] ;ebx holds char** argv
         cmp eax, 6  ;should be 6 args (progName, N, R, K, d, seed)
         jne endMain
-
 
         mov eax, [ebx + 4] ;eax = pointer to string rep of N
         push N
@@ -339,9 +338,9 @@ main:
             jge endInitDronesWhileLoop
 
             mov edx, 0;;TODO - check edx is 0 after multiplying
-            mov eax, [droneSize]
-            mul dword[index]
-            add eax, [drones]   ;eax holds address of drones[index]
+            mov eax, [droneSize]    ;eax = droneSize
+            mul dword[index]        ;eax = i*droneSize
+            add eax, [drones]       ;eax holds address of drones[i]
             push eax
 
             call getRandomNumber
@@ -417,7 +416,18 @@ greet:
     printGreeting
     ret
 convertToRadians:
-ret
+    mov eax, [esp + 4]  ;eax = degrees
+    FINIT
+    mov dword[temp], eax
+    FLD dword[temp]         ;ST0 = degrees
+    FLDPI                   ;ST0=pi, ST1 = degrees
+    FMUL ST0, ST1           ;ST0 = pi*degrees
+    mov dword[temp], 180
+    FIDIV dword[temp]       ;ST0 = pi*degrees/180 = radians
+    FST dword[temp]
+    mov eax, [temp]
+    ret
+
 ;receives i as args
 getCo:
     mov eax, [esp + 4]  ;eax = i
@@ -550,13 +560,13 @@ getRandomNumber2:
         
 ;;expect first arg/pop be lower bound, second to be upper bound, third is the raw number
 convertToFloatInRange:
-    finit               ;initialize x87 FP Subsystem
+    FINIT               ;initialize x87 FP Subsystem
     mov ebx, [esp + 4]  ;ebx = lower bound
     mov eax, [esp + 8] ;eax = upper bound
     sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
     mov dword[temp],eax ;[temp] = NewBound
 
-    FILD dword[maxRandom]   ;ST(0) = maxRandom = 0x7FFF
+    FILD dword[maxRandom]   ;ST(0) = maxRandom = 0x0000FFFF
     FIDIVR dword[temp]      ;ST(0) = NB / maxRandom
     mov eax, [esp + 12]     ;
     mov dword[temp], eax    ;[temp] = raw number to convert = r
