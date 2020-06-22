@@ -11,13 +11,42 @@
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
+%macro debugFloatConversion 0
+    FLD dword[temp]
+    sub esp, 8
+    FSTP qword[esp]
+    push debugRandomFormat
+    call printf
+    add esp, 12
+%endmacro
+
 %macro printHexTemp 0
     push dword[temp]
     push tempHexFormat
     call printf
     add esp, 8
 %endmacro
+%macro debugFields 0
+    pushad
 
+    mov eax, [xPos]
+    mov dword[temp], eax
+    debugFloatConversion
+
+    mov eax, [yPos]
+    mov dword[temp], eax
+    debugFloatConversion
+
+    mov eax, [speed]
+    mov dword[temp], eax
+    debugFloatConversion
+
+    mov eax, [angle]
+    mov dword[temp], eax
+    debugFloatConversion
+
+    popad
+%endmacro
 ;;should be good
 ;;moves drones fields to local variables
 %macro initFieldValues 0
@@ -35,6 +64,8 @@
 
     mov ebx, [eax+angleOffset]   ;ebx holds angle
     mov dword[angle], ebx
+
+    ;debugFields
 %endmacro
 
 ;;should be good
@@ -48,12 +79,13 @@
     FCOS                    ;ST(0) = cos(ST0) = cos(angle)
     FMUL    dword[speed]    ;ST(0) = speed*cos(angle)
     FADD    dword[xPos]     ;ST(0) = x + speed*cos(angle)
-    mov     dword[temp],0
-    FICOM   dword[temp] 
-    jl %%xIsNegative
+    FLDZ
+    FCOMIP
+    ja %%xIsNegative
     mov     dword[temp],100
-    FICOM   dword[temp]
-    jg %%xTooLarge
+    FILD    dword[temp]
+    FCOMIP  
+    jb %%xTooLarge
     jmp %%setX
         %%xIsNegative:
             mov     dword[temp], 100
@@ -72,12 +104,13 @@
     FSIN                ;ST(0) = cos(angle)
     FMUL dword[speed]   ;ST(0) = speed*cos(angle)
     FADD dword[yPos]    ;ST(0) = x + speed*cos(angle)
-    mov dword[temp],0
-    FICOM dword[temp]
-    jl %%yIsNegative
-    mov dword[temp],100
-    FICOM dword[temp]
-    jg %%yTooLarge
+    FLDZ
+    FCOMIP
+    ja %%yIsNegative
+    mov     dword[temp],100
+    FILD    dword[temp]
+    FCOMIP  
+    jb %%yTooLarge
     jmp %%setY
         %%yIsNegative:
             mov dword[temp], 100
@@ -102,12 +135,13 @@
     FLD dword[temp]         
     FLD dword[speed]        ;;ST(0) = currSpeed, ST(1) = temp = deltaSpeed
     FADDP 
-    mov dword[temp],100
-    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
-    jg %%speedTooLarge
-    mov dword[temp],0
-    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
-    jl %%speedIsNegative
+    FLDZ
+    FCOMIP
+    ja %%speedIsNegative
+    mov     dword[temp],100
+    FILD    dword[temp]
+    FCOMIP  
+    jb %%speedTooLarge
     jmp %%setSpeed
         %%speedIsNegative:
             FLDZ
@@ -132,11 +166,12 @@
     FLD dword[temp]         
     FLD dword[angle]        ;;ST(0) = currAngle, ST(1) = temp = deltaAngle
     FADDP
-    mov dword[temp],0
-    FICOM dword[temp]              ;flag should be result of comparison (ST(0),100)
-    jl %%angleIsNegative
-    FCOM dword[twoPi]
-    jg %%angleTooLarge
+    FLDZ
+    FCOMIP
+    ja %%angleIsNegative
+    FLD dword[twoPi]
+    FCOMIP
+    jb %%angleTooLarge
     jmp %%setAngle
         %%angleIsNegative:
             FADD dword[twoPi]
@@ -148,7 +183,8 @@
             FST dword[angle]
 
     storeFieldValues
-            
+    call greet
+    debugFields
     
     ;;update position
 %endmacro
@@ -178,12 +214,14 @@
     mov ecx, [angle]
     mov dword[ebx], ecx
 
+    ;debugFields
 %endmacro
 
 
 section .rodata
     twoPi: dd 6.28318530718
     tempHexFormat: db 'dTemp: 0x%X',10, 0
+    debugRandomFormat: db 'random converted to %f', 10, 0
 section .bss
 
 section .data
@@ -270,7 +308,7 @@ mayDestroy:
     mov dword[temp], eax
     FCOM dword[temp]    ;comp ST(0) with d
 
-    jle destroyTarget
+    jbe destroyTarget
     jmp notInRange
         destroyTarget:
             mov eax, [currDrone]

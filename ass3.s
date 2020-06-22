@@ -213,7 +213,7 @@ section .rodata
     tempFormat:     db 'Temp: %d',10, 0
     tempHexFormat:     db 'aTemp: 0x%X',10, 0
     debugRandomFormat: db 'random converted to %f', 10, 0
-    debugCorFormat: db 'id: %d, funcAdrs: %08X, stkPtr: %08X', 10, 0
+    debugCorFormat:    db 'id: %d, funcAdrs: %08X, stkPtr: %08X', 10, 0
 
 
 section .bss
@@ -237,7 +237,7 @@ section .bss
 
 section .data
     index: dd 0
-    determNum: dd 0x8FFF
+    determNum: dd 0x5555
 
 section .text
     global greet
@@ -502,7 +502,7 @@ getDrone:
 
 ;DETERMINISTIC VERSION 1,2,3,4...
 getRandomNumber:
-    inc dword[determNum]
+    ;inc dword[determNum]
     mov eax, [determNum]
     mov word[random], ax
     ret
