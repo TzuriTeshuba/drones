@@ -12,10 +12,12 @@
 %define COR_TARGET 2
 
 %macro printHexTemp 0
+    pushad
     push dword[temp]
     push tempHexFormat
     call printf
     add esp, 8
+    popad
 %endmacro
 ;;checks if there is a winner. if yes: prints winner and sets gameOver flag and exit program
 ;;pre-condition: numActive holds number of active drones
@@ -48,7 +50,7 @@
     ;hold min in eax
     ;hold currLoser in ebx
     ;iterate over drones and at end deactivate currLoser
-    mov dword[minScore],0x0FFFFFFF
+    mov dword[minScore],0x7FFFFFFF
     mov dword[numActive],-1
     mov dword[index],0
     %%forLoop:
@@ -73,7 +75,7 @@
                 mov ebx, eax        ;ebx = drones[i] adrs
                 add ebx, scoreOffset;ebx = drones[i].score adrs
                 mov ebx, [ebx]      ;ebx = drones[i].score
-                cmp ebx, minScore   ;if score < minScore => you currLoser
+                cmp ebx, [minScore]   ;if score < minScore => you currLoser
                 jl %%updateLoser
                 inc dword[index]    ;else i++ and try next drone
                 jmp %%forLoop
@@ -178,15 +180,6 @@ runScheduler:
                     call getCo
                     add esp, 4
                     mov ebx, eax    ;ebx = eax = pointer to cor(drone i)
-                        ;debug
-                            ;push ebx
-                            ;mov dword[temp], ebx
-                            ;printHexTemp
-                            ;mov ecx, runDrone
-                            ;mov dword[temp],ecx
-                            ;printHexTemp
-                            ;pop ebx
-                        ;enddebug
                     call resume
     printerCheck:
         call getK
@@ -215,9 +208,6 @@ runScheduler:
         inc dword[currDroneId]
         inc dword[iModk]
         inc dword[counter]
-
-        cmp dword[counter], 100
-        jge endCo
 
         cmp dword[gameOver],0
         je runScheduler

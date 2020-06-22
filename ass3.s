@@ -176,7 +176,7 @@
         cmp dword[index],0xFFFF
         je %%endOfForLoop
 
-        call getRandomNumber2
+        call getRandomNumber
         mov dword[temp], eax
         printHexTemp
         inc dword[index]
@@ -511,7 +511,7 @@ getDrone:
     ret
 
 ;DETERMINISTIC VERSION 1,2,3,4...
-getRandomNumber:
+getRandomNumber2:
     ;inc dword[determNum]
     mov eax, [determNum]
     mov word[random], ax
@@ -520,7 +520,7 @@ getRandomNumber:
 
 ;11th, 13th, 14th, 16th bits xor'ed 
 ;stores result in [random] and in eax
-getRandomNumber2:
+getRandomNumber:
     mov dword[randomCntr],0
     ;;shl muls by 2, shr divs by 2
     calcRandomhileLoop:

@@ -211,8 +211,6 @@
     add ebx, eax
     mov ecx, [angle]
     mov dword[ebx], ecx
-
-    ;debugFields
 %endmacro
 
 
@@ -268,15 +266,6 @@ runDrone:
     call getCo
     add esp, 4
     mov ebx, eax
-    ;debug
-        ;push ebx
-        ;mov dword[temp], ebx
-        ;printHexTemp
-        ;mov ecx, runTarget
-        ;mov dword[temp],ecx
-        ;printHexTemp
-    ;enddebug
-    ;pop ebx
     call resume
     jmp runDrone
 

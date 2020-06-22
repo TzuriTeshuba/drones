@@ -76,6 +76,14 @@
     add esp, 48
 %endmacro
 
+%macro printThreeLines 0
+    push newLineFormat
+    call printf
+    call printf
+    call printf
+    add esp, 4
+%endmacro
+
 %macro printTarget 0
     call getTargetY
     mov dword[temp],eax
@@ -95,10 +103,11 @@
 %endmacro
 
 section .rodata
-    droneFormat:        db "id: %d  X: %.3f  Y: %.3f  Speed: %.3f  Angle: %.3f  Score: %d  Status: %s", 10, 0
+    droneFormat:        db "id: %d  X: %7.3f  Y: %7.3f  Speed: %7.3f  Angle: %7.3f  Score: %4d  Status: %s", 10, 0
     ActiveFormat:       db 'ACTIVE',0
     notActiveFormat:    db 'LOST',0
-    targetFormat:       db 'target) x: %f, y: %f',10,0
+    targetFormat:       db 'Target x: %f, Target y: %f',10,0
+    newLineFormat:      db "",10,0
     _hexaFormat:        db '%x',10,0
     _deciFormat:        db '%d',10,0
     _calcPrompt:        db "calc: ", 0
@@ -152,6 +161,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
+        printThreeLines
         ret
 
 
