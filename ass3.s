@@ -169,6 +169,22 @@
     %%endPrintCorsLoop:
 %endmacro
 
+%macro printRandomSequenceAndExit 0
+    call greet
+    mov dword[index],0
+    %%forloop:
+        cmp dword[index],0xFFFF
+        je %%endOfForLoop
+
+        call getRandomNumber2
+        mov dword[temp], eax
+        printHexTemp
+        inc dword[index]
+        jmp %%forloop
+    %%endOfForLoop:
+        call myExit
+%endmacro
+
 ;;assumes arg is in temp
 %macro debugFloatConversion 0
     FLD dword[temp]
@@ -234,6 +250,7 @@ section .bss
     SPMAIN:     resd 1
     debugVar:   resd 1
     stacks:     resd 1  ;pointer to array of stack pointer
+    randomCntr: resd 1
 
 section .data
     index: dd 0
@@ -269,7 +286,6 @@ section .text
 
 ;;return esp after func calls
 main:
-    ;printGreeting
     FINIT
     initArgs:
         mov eax, [esp + 4] ;eax holds int argc
@@ -320,7 +336,6 @@ main:
 
         mov eax, [temp]
         mov word [random],ax ;ax is less sig word of eax
-    
     initTarget:
         call generateTarget
 
@@ -404,8 +419,6 @@ main:
             mov dword[numCors],eax
             add dword[numCors],3
             initCors
-            ;printRunFuncs
-            ;printCors
             push COR_SCHED
             call startCo
     endMain:
@@ -497,10 +510,6 @@ getDrone:
     add eax, [drones]       ;eax = adrs of drones[i]
     ret
 
-    
-
-
-
 ;DETERMINISTIC VERSION 1,2,3,4...
 getRandomNumber:
     ;inc dword[determNum]
@@ -512,49 +521,41 @@ getRandomNumber:
 ;11th, 13th, 14th, 16th bits xor'ed 
 ;stores result in [random] and in eax
 getRandomNumber2:
-    mov edx, 0 ;eax = i =0
-    
+    mov dword[randomCntr],0
+    ;;shl muls by 2, shr divs by 2
     calcRandomhileLoop:
-        ;;check condition - IMPLEMENT
-        cmp edx, 16
+        ;;check condition
+        cmp dword[randomCntr], 16
         jge endOfCalcRandomWhileLoop
         shr word[random], 1 ;shift random by 1 bit
-    ;11th bit
-        mov ebx,0
-        mov bx, 0x400 ;bx = 0000010000000000
-        and bx, [random] ;bx = 0 or 0x800
-        shr bx, 10
-    ;13th bit
-        mov ecx, 0
-        mov cx, 0x1000 ;cx = 0001000000000000
-        and cx, [random]
-        shr cx, 12
+    ;6th bit
+        mov ebx,1
+        shl ebx,5         
+        and bx, [random]    
+        shr bx, 5
+    ;4th bit
+        mov ecx, 1
+        shl ecx, 3         
+        and cx, [random]    
+        shr ecx, 3
         xor bx, cx
-    ;14th bit
-        mov ecx, 0
-        mov cx, 0x2000 ;cx = 0010000000000000
+    ;3th bit
+        mov ecx, 1
+        shl ecx, 2 
         and cx, [random]
-        shr cx, 13
+        shr ecx, 2
         xor bx, cx
-    ;16th bit
-        mov ecx, 0
-        mov cx, 0x8000 ;cx = 1000000000000000
+    ;1th bit
+        mov ecx, 1
         and cx, [random]
-        shr cx, 15
         xor bx, cx
 
-        shl bx,15              ;result is in msb of ax
-        or word[random],ax  ;random has MSB replaced with result
-        inc edx             ;i++
+        shl bx, 15               ;result is in msb of bx
+        or  word[random],bx     ;random has MSB replaced with result
+        inc dword[randomCntr]   ;i++
         jmp calcRandomhileLoop
 
     endOfCalcRandomWhileLoop:
-    ;debug
-        ;mov eax, 0
-        ;mov ax, [random]
-        ;mov dword[temp], eax
-        ;printTemp
-    ;enddebug
         mov eax, 0
         mov ax, [random]
         ret 
