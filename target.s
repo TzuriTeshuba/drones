@@ -3,26 +3,7 @@
 %define COR_TARGET 2
 %define COR_SIZE 8
 
-%macro printTarget 0
-    call getTargetY
-    mov dword[temp],eax
-    FLD dword[temp]
-    sub esp, 8
-    FSTP qword[esp]
-
-    call getTargetX
-    mov dword[temp],eax
-    FLD dword[temp]
-    sub esp, 8
-    FSTP qword[esp]
-
-    push targetFormat
-    call printf
-    add esp, 20
-%endmacro
-
 section .rodata
-    targetFormat: db 'x: %.3f, y: %.3f',10,0
 
 section .bss
 
@@ -37,13 +18,10 @@ section .text
     global getTargetY
     global generateTarget
     extern getRandomNumber
-    extern resume
-    extern cors
-    extern getCo
     extern getCurrDroneId
     extern convertToFloatInRange
-    extern greet
-    extern printf
+    extern resume
+    extern getCo
 
 runTarget:
     call generateTarget
@@ -72,7 +50,6 @@ generateTarget:
     call convertToFloatInRange
     add esp,12
     mov dword[targetY],eax
-    ;printTarget
     ret
 
 getTargetX:

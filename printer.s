@@ -11,7 +11,7 @@
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
-;void printDrone(int droneId)
+;assumes index = currDroneId
 %macro printDrone 0
     mov eax, [index]
     push dword[index]                ;push id for getDrone
@@ -39,7 +39,7 @@
     push dword[eax]
     call convertRadiansToDegrees
     add esp, 4
-    mov dword[temp], eax ;temp = degrees
+    mov dword[temp], eax    ;temp = degrees
     FLD dword[temp]
     sub esp, 8
     FSTP qword[esp]
@@ -55,7 +55,7 @@
     ;;push y coordinate float
     FINIT
     mov eax, [tempAdrs]
-    add eax, yOffset    ;eax = adrs of drones[i].x
+    add eax, yOffset        ;eax = adrs of drones[i].x
     FLD dword[eax]
     sub esp, 8
     FSTP qword[esp]
@@ -63,7 +63,7 @@
     ;;push x coordinate float
     FINIT
     mov eax, [tempAdrs]
-    add eax, xOffset    ;eax = adrs of drones[i].x
+    add eax, xOffset        ;eax = adrs of drones[i].x
     FLD dword[eax]
     sub esp, 8
     FSTP qword[esp]
@@ -88,20 +88,20 @@
 
 %macro printTarget 0
     call getTargetY
-    mov dword[temp],eax
-    FLD dword[temp]
-    sub esp, 8
+    mov  dword[temp],eax
+    FLD  dword[temp]
+    sub  esp, 8
     FSTP qword[esp]
 
     call getTargetX
-    mov dword[temp],eax
-    FLD dword[temp]
-    sub esp, 8
+    mov  dword[temp],eax
+    FLD  dword[temp]
+    sub  esp, 8
     FSTP qword[esp]
 
     push targetFormat
     call printf
-    add esp, 20
+    add  esp, 20
 %endmacro
 
 %macro printGameBoard 0
@@ -180,7 +180,6 @@
         jmp %%placeDronesLoop
     %%endPlaceDronesLoop:
 
-
     mov dword[index],0
     %%printLoop:
         ;;New Line if needed
@@ -194,7 +193,7 @@
             %%newLine:
                 push newLineFormat
                 call printf
-                add esp, 4
+                add  esp, 4
             %%noNewLine:
 
         cmp dword[index],BOARD_SIZE
@@ -228,7 +227,7 @@
     %%endPrintLoop:
         push dword[gameBoard]
         call free
-        add esp, 4
+        add  esp, 4
         popad
 %endmacro
 
@@ -240,11 +239,6 @@ section .rodata
     pawnFormat:         db " %X ",0
     CharFormat:         db " %c ",0
     newLineFormat:      db "",10,0
-    _hexaFormat:        db '%x',10,0
-    _deciFormat:        db '%d',10,0
-    _calcPrompt:        db "calc: ", 0
-    _format_string:     db "%s", 10, 0	; format string
-    _format_string2:    db "%s",' '	; format string
 
 section .bss
     tempAdrs:   resd 1
@@ -257,10 +251,10 @@ section .data
     y:     dd 0
 
 section .text
-    global printGame
     global runPrinter
     extern free
     extern calloc
+    extern printf
     extern getDrone
     extern getTargetX
     extern getTargetY
@@ -268,8 +262,6 @@ section .text
     extern convertToFloatInRange
     extern getCo
     extern resume
-    extern printf
-    extern greet
 
 convertRadiansToDegrees:
     mov eax, [esp + 4]      ;eax = radians
@@ -302,7 +294,6 @@ printGame:
         printThreeLines
         ret
 
-
 runPrinter:
     ;print target x,y -> stats of all drones -> resume scheduler -> repeat
     call printGame
@@ -313,8 +304,4 @@ runPrinter:
     mov ebx, eax
     call resume
     jmp runPrinter
-
-
-
-
 

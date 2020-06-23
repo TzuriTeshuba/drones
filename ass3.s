@@ -116,154 +116,44 @@
 %endmacro
 
 %macro initCors 0
-    mov eax,[numCors]
+    mov  eax,[numCors]
     push eax
     push COR_SIZE
     call calloc
-    mov dword[cors],eax
+    mov  dword[cors],eax
 
     initFuncs
     makeStacks
 %endmacro
 
-%macro printGreeting 0
-    push greetingMsg
-    call printf
-    add esp, 4
-%endmacro
-
-%macro printRunFuncs 0
-    mov dword[temp], runScheduler
-    printHexTemp
-    mov dword[temp], runPrinter
-    printHexTemp
-    mov dword[temp], runTarget
-    printHexTemp
-    mov dword[temp], runDrone
-    printHexTemp
-    
-    mov eax, [runScheduler]
-    mov dword[temp], eax
-    printHexTemp
-    mov eax, [runPrinter]
-    mov dword[temp], eax
-    printHexTemp
-    mov eax, [runTarget]
-    mov dword[temp], eax
-    printHexTemp
-    mov eax, [runDrone]
-    mov dword[temp], eax
-    printHexTemp
-%endmacro
-
-%macro printCors 0
-    ;;print cors adrs
-    mov eax, [cors]
-    mov dword[temp],eax
-    printHexTemp
-    ;print coroutines {id, func adrs, StkPtr}
-    mov dword[index],0
-    %%printCorLoop:
-        mov edx, [index]
-        cmp edx, [numCors]
-        jge %%endPrintCorsLoop
-
-        push dword[index]
-        call getCo
-        add esp, 4
-
-        push dword[eax + 4]
-        push dword[eax]
-        push dword[index]
-        push debugCorFormat
-        call printf
-        add esp, 16
-
-        inc dword[index]
-        jmp %%printCorLoop
-    %%endPrintCorsLoop:
-%endmacro
-
-%macro printRandomSequenceAndExit 0
-    call greet
-    mov dword[index],0
-    %%forloop:
-        cmp dword[index],0xFFFF
-        je %%endOfForLoop
-
-        call getRandomNumber
-        mov dword[temp], eax
-        printHexTemp
-        inc dword[index]
-        jmp %%forloop
-    %%endOfForLoop:
-        call myExit
-%endmacro
-
-;;assumes arg is in temp
-%macro debugFloatConversion 0
-    FLD dword[temp]
-    sub esp, 8
-    FSTP qword[esp]
-    push debugRandomFormat
-    call printf
-    add esp, 12
-%endmacro
-%macro printTemp 0
-    push dword[temp]
-    push tempFormat
-    call printf
-    add esp, 8
-%endmacro
-%macro printHexTemp 0
-    push dword[temp]
-    push tempHexFormat
-    call printf
-    add esp, 8
-%endmacro
-%macro debugProgArgs 0
-    push dword[temp]
-    FLD dword[d]
-    sub esp, 8
-    FSTP qword[esp]
-    push dword[K]
-    push dword[R]
-    push dword[N]
-    push argsFormat
-    call printf
-    add esp, 28
-%endmacro
-
 %macro freeStacks 0
     mov dword[index],0
-
     %%freeStackLoop:
         mov eax, [index]
         cmp eax, [numCors]
         jge %%endFreeStackLoop
-            mov ebx, 4
-            mul ebx     ;eax = 4*i
-            add eax, [stacks]   ;eax = adrs of stacks[i]
+            mov  ebx, 4
+            mul  ebx     ;eax = 4*i
+            add  eax, [stacks]   ;eax = adrs of stacks[i]
             push dword[eax]
             call free
-            add esp, 4
+            add  esp, 4
         inc dword[index]
         jmp %%freeStackLoop
     %%endFreeStackLoop:
         push dword[stacks]
         call free
-        add esp, 4
-
+        add  esp, 4
 %endmacro
 
 %macro freeDronesAndCors 0
         push dword[drones]
         call free
-        add esp, 4
+        add  esp, 4
 
         push dword[cors]
         call free
-        add esp, 4
+        add  esp, 4
 %endmacro
 
 %macro autoInitProgArgs 0
@@ -285,83 +175,71 @@ section .rodata
     droneSize:      dd 24       ;x,y,speed,angle,score, isAlive
     argIntFormat:   db '%d', 0
     argFloatFormat: db '%f',0
-    argsFormat:     db 'N: %d, R: %d, K: %d, d: %f, seed(temp): %d', 10, 0
     greetingMsg:    db 'Drone Battale Royale!', 10, 0
-    tempFormat:     db 'Temp: %d',10, 0
-    tempHexFormat:     db 'aTemp: 0x%X',10, 0
-    debugRandomFormat: db 'random converted to %f', 10, 0
-    debugCorFormat:    db 'id: %d, funcAdrs: %08X, stkPtr: %08X', 10, 0
-
 
 section .bss
-    random:     resw 1
-    N:          resd 1   ;initial number of drones
-    R:          resd 1   ;number of full scheduler cycles between each elimination
-    K:          resd 1   ;how many drone steps between game board printings  
-    d:          resd 1   ;(float) maximum distance that allows to destroy a target
-    drones:     resd 1   ;pointer to drone array
-    temp:       resd 1
-    result:     resd 1
-    dronesLeft: resd 1
-    cors:       resd 1
-    corsStack:  resd 1
-    numCors:    resd 1
-    curr:       resd 1
-    SPT:        resd 1
-    SPMAIN:     resd 1
-    debugVar:   resd 1
-    stacks:     resd 1  ;pointer to array of stack pointer
-    randomCntr: resd 1
+    random:         resw 1
+    N:              resd 1   ;initial number of drones
+    R:              resd 1   ;number of full scheduler cycles between each elimination
+    K:              resd 1   ;how many drone steps between game board printings  
+    d:              resd 1   ;(float) maximum distance that allows to destroy a target
+    drones:         resd 1   ;pointer to drone array
+    temp:           resd 1
+    result:         resd 1
+    dronesLeft:     resd 1
+    cors:           resd 1
+    corsStack:      resd 1
+    numCors:        resd 1
+    curr:           resd 1
+    SPT:            resd 1
+    SPMAIN:         resd 1
+    stacks:         resd 1  ;pointer to array of stack pointer
+    randomCntr:     resd 1
 
 section .data
-    index:      dd 0
-    determNum:  dd 0x5555
-    debugIdx:   dd 0
+    index:          dd 0
+    debugIdx:       dd 0
 
 section .text
-    global greet
     global main
-    global resume
-    global getRandomNumber
-    global getDrones
-    global getDrone
     global getN
     global getK
     global getR
     global getD
-    global startCo
-    global endCo
-    global myExit
+    global getRandomNumber
     global convertToFloatInRange
     global convertToRadians
+    global getDrones
+    global getDrone
     global getCo
+    global resume
+    global endCo
+    global myExit
     extern printf
     extern sscanf
-    extern malloc
     extern calloc
     extern free
-    extern generateTarget
     extern runTarget
     extern runPrinter
     extern runScheduler
     extern runDrone
+    extern generateTarget
 
-;;return esp after func calls
 main:
     FINIT
     initArgs:
-        mov eax, [esp + 4] ;eax holds int argc
-        mov ebx, [esp + 8] ;ebx holds char** argv
-        cmp eax, 6  ;should be 6 args (progName, N, R, K, d, seed)
+        mov eax, [esp + 4]  ;eax holds int argc
+        mov ebx, [esp + 8]  ;ebx holds char** argv
+        cmp eax, 6          ;should be 6 args (progName, N, R, K, d, seed)
         jne endMain
 
-        mov eax, [ebx + 4] ;eax = pointer to string rep of N
+        mov eax, [ebx + 4]      ;eax = pointer to string rep of N
         push N
         push argIntFormat
         push eax
-        call sscanf         ;N = (int)argv[1]
+        call sscanf             ;N = (int)argv[1]
         add esp, 12
-        mov eax,[N]
+        mov eax, [N]
         mov dword[dronesLeft], eax
 
         mov ebx, [esp + 8]
@@ -369,7 +247,7 @@ main:
         push R
         push argIntFormat
         push eax
-        call sscanf         ;R = (int)argv[2]
+        call sscanf             ;R = (int)argv[2]
         add esp, 12
 
         mov ebx, [esp + 8]
@@ -377,7 +255,7 @@ main:
         push K
         push argIntFormat
         push eax
-        call sscanf         ;K = (int)argv[3]
+        call sscanf             ;K = (int)argv[3]
         add esp, 12
 
         mov ebx, [esp + 8]
@@ -385,7 +263,7 @@ main:
         push d
         push argFloatFormat
         push eax
-        call sscanf         ;d = (int)argv[4]
+        call sscanf             ;d = (int)argv[4]
         add esp, 12
 
         mov ebx, [esp + 8]
@@ -393,7 +271,7 @@ main:
         push temp
         push argIntFormat
         push eax
-        call sscanf         ;temp = (int)argv[5]
+        call sscanf             ;temp = (int)argv[5]
         add esp, 12
 
         mov eax, [temp]
@@ -405,20 +283,19 @@ main:
         push dword[N]
         push dword[droneSize]
         call calloc
-        add esp, 8
-        mov dword[drones],eax
-        mov dword[index], 0
+        add  esp, 8
+        mov  dword[drones],eax
+        mov  dword[index], 0
         initDronesWhileLoop:
             ;check condition
             mov eax, [index]
             cmp eax, [N]
             jge endInitDronesWhileLoop
 
-            mov edx, 0;;TODO - check edx is 0 after multiplying
-            mov eax, [droneSize]    ;eax = droneSize
-            mul dword[index]        ;eax = i*droneSize
-            add eax, [drones]       ;eax holds address of drones[i]
-            push eax                ;save for popping later
+            mov  eax, [droneSize]    ;eax = droneSize
+            mul  dword[index]        ;eax = i*droneSize
+            add  eax, [drones]       ;eax holds address of drones[i]
+            push eax                 ;save for popping later
 
             add eax, isAliveOffset
             mov dword[eax],1
@@ -427,12 +304,12 @@ main:
             push eax
             push 100
             push 0
-            call convertToFloatInRange  ;eax = xPos in [0,100] range
-            add esp, 12
-            pop ebx                     ;ebx holds drones[i] pointer
-            mov ecx, xOffset
-            add ecx, ebx
-            mov dword[ecx], eax         ;init x
+            call convertToFloatInRange      ;eax = xPos in [0,100] range
+            add  esp, 12
+            pop  ebx                        ;ebx holds drones[i] pointer
+            mov  ecx, xOffset
+            add  ecx, ebx
+            mov  dword[ecx], eax            ;init x
 
             push ebx
             call getRandomNumber
@@ -440,11 +317,11 @@ main:
             push 100
             push 0
             call convertToFloatInRange
-            add esp, 12
-            pop ebx
-            mov ecx, yOffset
-            add ecx, ebx
-            mov dword[ecx], eax   ;init y
+            add  esp, 12
+            pop  ebx
+            mov  ecx, yOffset
+            add  ecx, ebx
+            mov  dword[ecx], eax            ;init y
 
             push ebx
             call getRandomNumber
@@ -452,11 +329,11 @@ main:
             push 100
             push 0
             call convertToFloatInRange
-            add esp, 12
-            pop ebx
-            mov ecx, speedOffset
-            add ecx, ebx
-            mov dword[ecx], eax   ;init speed
+            add  esp, 12
+            pop  ebx
+            mov  ecx, speedOffset
+            add  ecx, ebx
+            mov  dword[ecx], eax            ;init speed
 
             push ebx
             call getRandomNumber
@@ -464,22 +341,22 @@ main:
             push 360
             push 0
             call convertToFloatInRange
-            add esp, 12
+            add  esp, 12
             push eax
             call convertToRadians
-            add esp, 4
-            pop ebx
-            mov ecx, angleOffset
-            add ecx, ebx
-            mov dword[ecx], eax   ;init angle
+            add  esp, 4
+            pop  ebx
+            mov  ecx, angleOffset
+            add  ecx, ebx
+            mov  dword[ecx], eax            ;init angle
 
             inc dword[index]
             jmp initDronesWhileLoop
 
         endInitDronesWhileLoop:
-            mov eax, [N]
-            mov dword[numCors],eax
-            add dword[numCors],3
+            mov  eax, [N]
+            mov  dword[numCors],eax
+            add  dword[numCors],3
             initCors
             push COR_SCHED
             call startCo
@@ -489,9 +366,6 @@ main:
         int 0x80
         ret
 
-greet:
-    printGreeting
-    ret
 convertToRadians:
     mov eax, [esp + 4]  ;eax = degrees
     FINIT
@@ -513,7 +387,6 @@ getCo:
     add eax, [cors]     ;eax = cors + i*corSize = cors[i] adrs
     ret
 
-
 ;;received i (cor id) as arg
 startCo:
     mov eax, [esp+4];
@@ -526,27 +399,25 @@ startCo:
     mul ecx                 ;eax = i*corSize = 8*i
     add eax, [cors]         ;eax = cors adrs +8*i
     mov ebx, eax
-    ;;correct address [cors] = ebx
     jmp do_resume
+
 endCo:
     mov esp, [SPMAIN]
     popad
     call myExit
-    ;;;ret
+
 resume:
     pushfd
     pushad
     mov edx, [curr]
     mov dword[edx + CO_SP_OFF], esp
+
 do_resume:
     mov esp, [ebx + CO_SP_OFF]  ;esp = cors[i].SP
     mov dword[curr],ebx         ;[curr] = cors[i]
     popad                       ;restore previous register values
     popfd                       ;...and flags
     ret                         ;jump to cors[i].func()
-
-
-
 
 getN:
     mov eax, [N]
@@ -566,7 +437,6 @@ getDrones:
     ret
 
 ;assumes dword of index was pushed
-;SHOULD NOT USE ecx
 getDrone:
     mov eax, [esp + 4]      ;eax = i
     mov ecx, [droneSize]
@@ -574,16 +444,7 @@ getDrone:
     add eax, [drones]       ;eax = adrs of drones[i]
     ret
 
-;DETERMINISTIC VERSION 1,2,3,4...
-getRandomNumber2:
-    ;inc dword[determNum]
-    mov eax, [determNum]
-    mov word[random], ax
-    ret
-
-
-;11th, 13th, 14th, 16th bits xor'ed 
-;stores result in [random] and in eax
+;[random shifted left 1-bit, then 11th, 13th, 14th, 16th bits of [random] are xor'ed and the result is stored MSB of [random]
 getRandomNumber:
     mov dword[randomCntr],0
     ;;shl muls by 2, shr divs by 2
@@ -614,9 +475,9 @@ getRandomNumber:
         and cx, [random]
         xor bx, cx
 
-        shl bx, 15               ;result is in msb of bx
-        or  word[random],bx     ;random has MSB replaced with result
-        inc dword[randomCntr]   ;i++
+        shl bx, 15                  ;result is in msb of bx
+        or  word[random],bx         ;random has MSB replaced with result
+        inc dword[randomCntr]       ;i++
         jmp calcRandomhileLoop
 
     endOfCalcRandomWhileLoop:
@@ -626,20 +487,20 @@ getRandomNumber:
         
 ;;expect first arg/pop be lower bound, second to be upper bound, third is the raw number
 convertToFloatInRange:
-    FINIT               ;initialize x87 FP Subsystem
-    mov ebx, [esp + 4]  ;ebx = lower bound
-    mov eax, [esp + 8] ;eax = upper bound
-    sub eax, ebx        ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
-    mov dword[temp],eax ;[temp] = NewBound
+    FINIT                       ;initialize x87 FP Subsystem
+    mov     ebx, [esp + 4]      ;ebx = lower bound
+    mov     eax, [esp + 8]      ;eax = upper bound
+    sub     eax, ebx            ;eax = new upper bound (linear translation: [LB,UB] -> [0,UB-LB])
+    mov     dword[temp],eax     ;[temp] = NewBound
 
-    FILD dword[maxRandom]   ;ST(0) = maxRandom = 0x0000FFFF
-    FIDIVR dword[temp]      ;ST(0) = NB / maxRandom
-    mov eax, [esp + 12]     ;
-    mov dword[temp], eax    ;[temp] = raw number to convert = r
-    FIMUL dword[temp]       ;ST(0) = NB * (r / maxRandom)
-    FIADD dword[esp + 4]    ;undo linear translation: ST(0) = ST(0) + LB
-    FST dword[temp]         ;[temp] = ST(0)
-    mov eax, [temp]         ;eax holds the converted value
+    FILD    dword[maxRandom]    ;ST(0) = maxRandom = 0x0000FFFF
+    FIDIVR  dword[temp]         ;ST(0) = NB / maxRandom
+    mov     eax, [esp + 12]      
+    mov     dword[temp], eax    ;[temp] = raw number to convert = r
+    FIMUL   dword[temp]         ;ST(0) = NB * (r / maxRandom)
+    FIADD   dword[esp + 4]      ;undo linear translation: ST(0) = ST(0) + LB
+    FST     dword[temp]         ;[temp] = ST(0)
+    mov     eax, [temp]         ;eax holds the converted value
     ret
 
 myExit:
@@ -648,12 +509,4 @@ myExit:
     mov al, 1
     mov ebx, 0
     int 0x80
-    ;push dword[drones]
-    ;call free
-    ;add esp, 4
-;
-    ;push dword[cors]
-    ;call free
-    ;add esp, 4
 
-theENDDD:

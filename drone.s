@@ -11,43 +11,7 @@
 %define COR_PRINTER 1
 %define COR_TARGET 2
 
-%macro debugFloatConversion 0
-    FLD dword[temp]
-    sub esp, 8
-    FSTP qword[esp]
-    push debugRandomFormat
-    call printf
-    add esp, 12
-%endmacro
 
-%macro printHexTemp 0
-    push dword[temp]
-    push tempHexFormat
-    call printf
-    add esp, 8
-%endmacro
-%macro debugFields 0
-    pushad
-
-    mov eax, [xPos]
-    mov dword[temp], eax
-    debugFloatConversion
-
-    mov eax, [yPos]
-    mov dword[temp], eax
-    debugFloatConversion
-
-    mov eax, [speed]
-    mov dword[temp], eax
-    debugFloatConversion
-
-    mov eax, [angle]
-    mov dword[temp], eax
-    debugFloatConversion
-
-    popad
-%endmacro
-;;should be good
 ;;moves drones fields to local variables
 %macro initFieldValues 0
     ;;get floats values of drone fields
@@ -64,11 +28,8 @@
 
     mov ebx, [eax+angleOffset]   ;ebx holds angle
     mov dword[angle], ebx
-
-    ;debugFields
 %endmacro
 
-;;should be good
 ;;moves drone and calculates new fields
 %macro moveDrone 0
     initFieldValues
@@ -96,7 +57,7 @@
             FISUB   dword[temp]
             jmp %%setX
         %%setX:
-            FST dword[xPos]     ;[xPos] = ST(0)
+            FST     dword[xPos]     ;[xPos] = ST(0)
 
     ;;Y
     FINIT
@@ -121,7 +82,7 @@
             FISUB   dword[temp]
             jmp %%setY
         %%setY:
-            FST dword[yPos]     ;[yPos] = ST(0)
+            FST     dword[yPos]     ;[yPos] = ST(0)
 
     ;;newSpeed
     FINIT
@@ -183,11 +144,8 @@
             FST dword[angle]
 
     storeFieldValues
-    
-    ;;update position
 %endmacro
 
-;should be good
 ;moves local variables (x,y,speed, angle) into drone array
 %macro storeFieldValues 0
     mov eax, [currDrone]
@@ -215,9 +173,7 @@
 
 
 section .rodata
-    twoPi: dd 6.28318530718
-    tempHexFormat: db 'dTemp: 0x%X',10, 0
-    debugRandomFormat: db 'random converted to %f', 10, 0
+    twoPi:      dd 6.28318530718
 section .bss
 
 section .data
@@ -233,24 +189,16 @@ section .data
 
 section .text
     global runDrone
-    extern resumeCor
     extern getD
     extern getTargetX
     extern getTargetY
-    extern getCurrDroneId
     extern getDrone
+    extern getCurrDroneId
     extern getRandomNumber
     extern convertToFloatInRange
     extern convertToRadians
     extern getCo
     extern resume
-    extern startCo
-    extern greet
-    extern runTarget
-    extern printf
-    extern generateTarget
-
-
 
 runDrone:
     call getCurrDroneId
@@ -310,11 +258,4 @@ mayDestroy:
             call resume
         notInRange:
     ret
-
-
-
-
-
-
-    
 
