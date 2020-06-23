@@ -5,6 +5,7 @@
 %define scoreOffset 16
 %define isAliveOffset 20
 %define DRONE_SIZE 24
+%define BOARD_SIZE 575
 
 %define COR_SCHED 0
 %define COR_PRINTER 1
@@ -102,11 +103,139 @@
     add esp, 20
 %endmacro
 
+%macro printGameBoard 0
+    pushad
+    ;allocate memory for board
+    push BOARD_SIZE ;25^2+1
+    push 1
+    call calloc
+    add esp, 8
+    mov dword[gameBoard], eax
+
+    ;;add target to board
+    FINIT
+    call getTargetX     ;eax = (float)target.x
+    mov dword[x],eax    ;x = (float)target.x
+    FLD dword[x]        ;ST0 =(float)target.x
+    mov dword[temp], 4  ;temp =4
+    FIDIV dword[temp]   ;ST0 = (float)target.x / 4
+    FISTP dword[x]      ;x = (int)target.x / 4
+    call getTargetY
+    mov dword[y],eax
+    FLD dword[y]
+    mov dword[temp], 4
+    FIDIV dword[temp]
+    FISTP dword[y]      ;y = (int)target.y
+
+    mov eax, [y]            ;eax = y
+    mov ebx, 25     
+    mul ebx                 ;eax = 25*y
+    add eax, [x]            ;eax = 25*y + x
+    add eax, [gameBoard]    ;eax = gameboard[25*y+x] adrs
+    mov dword[eax], 0xFF    ;gameBoard[25*y+x] = 0xFF
+
+    ;;add drones to board
+    mov dword[index],0
+    %%placeDronesLoop:
+        call getN
+        cmp dword[index], eax
+        jge %%endPlaceDronesLoop
+
+        push dword[index]
+        call getDrone
+        add esp, 4
+        mov dword[tempAdrs], eax
+
+        FINIT
+        mov eax, [tempAdrs]
+        add eax, xOffset
+        mov eax, [eax]
+        mov dword[x],eax    ;x = (float)target.x
+        FLD dword[x]        ;ST0 =(float)target.x
+        mov dword[temp], 4  ;temp =4
+        FIDIV dword[temp]   ;ST0 = (float)target.x / 4
+        FISTP dword[x]      ;x = (int)target.x / 4
+        mov eax, [tempAdrs]
+        add eax, yOffset
+        mov eax, [eax]
+        mov dword[y],eax    ;x = (float)target.x
+        FLD dword[y]        ;ST0 =(float)target.x
+        mov dword[temp], 4  ;temp =4
+        FIDIV dword[temp]   ;ST0 = (float)target.x / 4
+        FISTP dword[y]      ;x = (int)target.x / 4
+
+        mov eax, [y]            ;eax = y
+        mov ebx, 25     
+        mul ebx                 ;eax = 25*y
+        add eax, [x]            ;eax = 25*y + x
+        add eax, [gameBoard]    ;eax = gameboard[25*y+x] adrs
+        mov ebx, [index]
+        mov dword[eax], ebx     ;gameBoard[25*y+x] = 0xFF
+
+
+        inc dword[index]
+        jmp %%placeDronesLoop
+    %%endPlaceDronesLoop:
+
+
+    mov dword[index],0
+    %%printLoop:
+        ;;New Line if needed
+        mov ebx, 25
+        mov edx, 0
+        mov eax, [index]
+        div ebx     ;ebx = i/25, edx i%25
+        cmp edx,0
+        je %%newLine
+        jmp %%noNewLine
+            %%newLine:
+                push newLineFormat
+                call printf
+                add esp, 4
+            %%noNewLine:
+
+        cmp dword[index],BOARD_SIZE
+        jge %%endPrintLoop
+        mov eax, [index]
+        add eax, [gameBoard]    ;eax = gameBoard + index
+        mov ebx,0
+        mov bl, [eax]           ;ebx = value at gameBoard[index]
+        mov ecx, pawnFormat
+        cmp ebx, 0              ;if 0 then reformat to space
+        je %%reformatNull
+        cmp ebx, 0xFF
+        je %%reformatTarget
+        jmp %%formattingComplete
+        %%reformatNull:
+            mov ebx, '.'
+            mov ecx, CharFormat
+            jmp %%formattingComplete
+        %%reformatTarget:
+            mov ebx, '$'
+            mov ecx, CharFormat
+            jmp %%formattingComplete
+        %%formattingComplete:
+            push ebx
+            push ecx
+            call printf
+            add esp, 8
+
+        inc dword[index]
+        jmp %%printLoop
+    %%endPrintLoop:
+        push dword[gameBoard]
+        call free
+        add esp, 4
+        popad
+%endmacro
+
 section .rodata
     droneFormat:        db "id: %d  X: %7.3f  Y: %7.3f  Speed: %7.3f  Angle: %7.3f  Score: %4d  Status: %s", 10, 0
     ActiveFormat:       db 'ACTIVE',0
     notActiveFormat:    db 'LOST',0
     targetFormat:       db 'Target x: %f, Target y: %f',10,0
+    pawnFormat:         db ".%X",0
+    CharFormat:         db ".%c",0
     newLineFormat:      db "",10,0
     _hexaFormat:        db '%x',10,0
     _deciFormat:        db '%d',10,0
@@ -117,13 +246,18 @@ section .rodata
 section .bss
     tempAdrs:   resd 1
     temp:       resd 1
+    gameBoard:  resd 1
     
 section .data
     index: dd 0
+    x:     dd 0
+    y:     dd 0
 
 section .text
     global printGame
     global runPrinter
+    extern free
+    extern calloc
     extern getDrone
     extern getTargetX
     extern getTargetY
@@ -161,6 +295,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
+        printGameBoard
         printThreeLines
         ret
 

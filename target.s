@@ -22,7 +22,7 @@
 %endmacro
 
 section .rodata
-    targetFormat: db 'x: %.4f, y: %.4f',10,0
+    targetFormat: db 'x: %.3f, y: %.3f',10,0
 
 section .bss
 
