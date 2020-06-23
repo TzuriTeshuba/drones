@@ -27,15 +27,30 @@
 
 ;;assumes numCors and cors has been initialized
 %macro makeStacks 0
-    mov dword[index],0
+    mov eax, [numCors]
+    push eax
+    push 4
+    call calloc
+    add esp, 8
+    mov dword[stacks],eax
 
+    mov dword[index],0
     %%makeStackLoop:
         mov eax, [index]        ;eax = i
         cmp eax, [numCors]      ;cmp i with numCors
         jge %%endMakeStackLoop
 
         makeStack               
-        push eax
+        push eax            ;eax = calloc + STK_SIZE, (store for later)
+
+        mov ebx, eax        ;ebx = calloc ret val + STK+SIZE
+        sub ebx, STK_SIZE   ;ebx = ptr to stack = ret from calloc
+        mov eax, [index]    ;eax =i
+        mov ecx, 4
+        mul ecx               ;eax = 4*i
+        add eax, [stacks]   ;eax = stacks + 4*i = adrs of stacks[i]
+        mov dword[eax], ebx ;stacks[i] = calloc ret value
+
 
         push dword[index]
         call getCo          ;eax = adrs of cors[i]
@@ -219,6 +234,52 @@
     add esp, 28
 %endmacro
 
+%macro freeStacks 0
+    mov dword[index],0
+
+    %%freeStackLoop:
+        mov eax, [index]
+        cmp eax, [numCors]
+        jge %%endFreeStackLoop
+            mov ebx, 4
+            mul ebx     ;eax = 4*i
+            add eax, [stacks]   ;eax = adrs of stacks[i]
+            push dword[eax]
+            call free
+            add esp, 4
+        inc dword[index]
+        jmp %%freeStackLoop
+    %%endFreeStackLoop:
+        push dword[stacks]
+        call free
+        add esp, 4
+
+%endmacro
+
+%macro freeDronesAndCors 0
+        push dword[drones]
+        call free
+        add esp, 4
+
+        push dword[cors]
+        call free
+        add esp, 4
+%endmacro
+
+%macro autoInitProgArgs 0
+    mov dword[N], 10
+    mov dword[R], 5
+    mov dword[K], 100000
+
+    FINIT
+    mov     dword[d], 50
+    FILD    dword[d]
+    FST     dword[d]        ;d = 50.0
+
+    mov eax, [debugIdx]
+    mov word[random],ax
+%endmacro
+
 section .rodata
     maxRandom:      dd 0xFFFF; 1111 1111 1111 1111
     droneSize:      dd 24       ;x,y,speed,angle,score, isAlive
@@ -253,8 +314,9 @@ section .bss
     randomCntr: resd 1
 
 section .data
-    index: dd 0
-    determNum: dd 0x5555
+    index:      dd 0
+    determNum:  dd 0x5555
+    debugIdx:   dd 0
 
 section .text
     global greet
@@ -335,7 +397,7 @@ main:
         add esp, 12
 
         mov eax, [temp]
-        mov word [random],ax ;ax is less sig word of eax
+        mov word [random],ax    ;ax is less sig word of eax
     initTarget:
         call generateTarget
 
@@ -422,7 +484,10 @@ main:
             push COR_SCHED
             call startCo
     endMain:
-    ret
+        mov al, 1
+        mov ebx, 0
+        int 0x80
+        ret
 
 greet:
     printGreeting
@@ -464,7 +529,6 @@ startCo:
     ;;correct address [cors] = ebx
     jmp do_resume
 endCo:
-    call greet
     mov esp, [SPMAIN]
     popad
     call myExit
@@ -579,6 +643,8 @@ convertToFloatInRange:
     ret
 
 myExit:
+    freeStacks
+    freeDronesAndCors
     mov al, 1
     mov ebx, 0
     int 0x80

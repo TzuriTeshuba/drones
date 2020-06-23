@@ -36,7 +36,9 @@
                 inc dword[index]
                 jmp %%getWinnerWhileLoop
             %%foundWinner:
-                push dword[index]
+                mov eax, [index]
+                add eax, 1
+                push eax
                 push winnerFormat
                 call printf
                 add esp, 8
@@ -92,7 +94,7 @@
 %endmacro
 section .rodata
     inValidResumeInputFormat: db 'Error: Tried to resume out of bounds co-routine', 10,0
-    winnerFormat: db 'The winner is Drone #%d',10,0
+    winnerFormat: db 'The winner is Drone #%X',10,0
     tempHexFormat: db 'sTemp: 0x%X',10, 0
 
 section .bss

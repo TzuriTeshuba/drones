@@ -5,7 +5,7 @@
 %define scoreOffset 16
 %define isAliveOffset 20
 %define DRONE_SIZE 24
-%define BOARD_SIZE 575
+%define BOARD_SIZE 626
 
 %define COR_SCHED 0
 %define COR_PRINTER 1
@@ -13,10 +13,11 @@
 
 ;void printDrone(int droneId)
 %macro printDrone 0
+    mov eax, [index]
     push dword[index]                ;push id for getDrone
-    call getDrone           ;eax should hold pointer to drone
+    call getDrone                   ;eax should hold pointer to drone
     add esp, 4
-    mov dword[tempAdrs],eax ;eax hold pointer to drone
+    mov dword[tempAdrs],eax         ;eax hold pointer to drone
     add eax, isAliveOffset
     cmp dword[eax],0
     je %%statusNotActive
@@ -68,12 +69,12 @@
     FSTP qword[esp]
 
     ;;push id
-    push dword[index]
+    mov eax, [index]
+    add eax, 1
+    push eax
     ;;push format
     push droneFormat
     call printf
-
-
     add esp, 48
 %endmacro
 
@@ -113,26 +114,27 @@
     mov dword[gameBoard], eax
 
     ;;add target to board
-    FINIT
-    call getTargetX     ;eax = (float)target.x
-    mov dword[x],eax    ;x = (float)target.x
-    FLD dword[x]        ;ST0 =(float)target.x
-    mov dword[temp], 4  ;temp =4
-    FIDIV dword[temp]   ;ST0 = (float)target.x / 4
-    FISTP dword[x]      ;x = (int)target.x / 4
-    call getTargetY
-    mov dword[y],eax
-    FLD dword[y]
-    mov dword[temp], 4
-    FIDIV dword[temp]
-    FISTP dword[y]      ;y = (int)target.y
+    %%placeTarget:
+        FINIT
+        call getTargetX     ;eax = (float)target.x
+        mov dword[x],eax    ;x = (float)target.x
+        FLD dword[x]        ;ST0 =(float)target.x
+        mov dword[temp], 4  ;temp =4
+        FIDIV dword[temp]   ;ST0 = (float)target.x / 4
+        FISTP dword[x]      ;x = (int)target.x / 4
+        call getTargetY
+        mov dword[y],eax
+        FLD dword[y]
+        mov dword[temp], 4
+        FIDIV dword[temp]
+        FISTP dword[y]      ;y = (int)target.y /4
 
-    mov eax, [y]            ;eax = y
-    mov ebx, 25     
-    mul ebx                 ;eax = 25*y
-    add eax, [x]            ;eax = 25*y + x
-    add eax, [gameBoard]    ;eax = gameboard[25*y+x] adrs
-    mov dword[eax], 0xFF    ;gameBoard[25*y+x] = 0xFF
+        mov eax, [y]            ;eax = y
+        mov ebx, 25     
+        mul ebx                 ;eax = 25*y
+        add eax, [x]            ;eax = 25*y + x
+        add eax, [gameBoard]    ;eax = gameboard[25*y+x] adrs
+        mov dword[eax], 0xFF    ;gameBoard[25*y+x] = 0xFF
 
     ;;add drones to board
     mov dword[index],0
@@ -170,7 +172,8 @@
         add eax, [x]            ;eax = 25*y + x
         add eax, [gameBoard]    ;eax = gameboard[25*y+x] adrs
         mov ebx, [index]
-        mov dword[eax], ebx     ;gameBoard[25*y+x] = 0xFF
+        add ebx, 1
+        mov dword[eax], ebx     ;gameBoard[25*y+x] = drone id
 
 
         inc dword[index]
@@ -181,10 +184,10 @@
     mov dword[index],0
     %%printLoop:
         ;;New Line if needed
-        mov ebx, 25
-        mov edx, 0
-        mov eax, [index]
-        div ebx     ;ebx = i/25, edx i%25
+        mov ebx, 25         ;ebx =25
+        mov edx, 0          ;edx = 
+        mov eax, [index]    ;eax = i
+        div ebx             ;ea-x = i/25, edx i%25
         cmp edx,0
         je %%newLine
         jmp %%noNewLine
@@ -230,12 +233,12 @@
 %endmacro
 
 section .rodata
-    droneFormat:        db "id: %d  X: %7.3f  Y: %7.3f  Speed: %7.3f  Angle: %7.3f  Score: %4d  Status: %s", 10, 0
+    droneFormat:        db "id: %2X  X: %7.2f  Y: %7.2f  Speed: %7.3f  Angle: %7.2f  Score: %4d  Status: %s", 10, 0
     ActiveFormat:       db 'ACTIVE',0
     notActiveFormat:    db 'LOST',0
-    targetFormat:       db 'Target x: %f, Target y: %f',10,0
-    pawnFormat:         db ".%X",0
-    CharFormat:         db ".%c",0
+    targetFormat:       db 'Target x: %.2f, Target y: %.2f',10,0
+    pawnFormat:         db " %X ",0
+    CharFormat:         db " %c ",0
     newLineFormat:      db "",10,0
     _hexaFormat:        db '%x',10,0
     _deciFormat:        db '%d',10,0
@@ -295,7 +298,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
-        printGameBoard
+        ;printGameBoard
         printThreeLines
         ret
 

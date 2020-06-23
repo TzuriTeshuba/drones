@@ -303,11 +303,11 @@ mayDestroy:
             add eax, scoreOffset
             inc dword[eax]
             ;;need to resume target
-            ;push COR_TARGET
-            ;call getCo
-            ;add esp, 4
-            ;mov ebx, eax
-            ;call resume
+            push COR_TARGET
+            call getCo
+            add esp, 4
+            mov ebx, eax
+            call resume
         notInRange:
     ret
 
