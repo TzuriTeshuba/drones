@@ -5,7 +5,7 @@
 %define scoreOffset 16
 %define isAliveOffset 20
 %define DRONE_SIZE 24
-%define BOARD_SIZE 626
+%define BOARD_SIZE 625
 
 %define COR_SCHED 0
 %define COR_PRINTER 1
@@ -104,6 +104,13 @@
     add  esp, 20
 %endmacro
 
+%macro printCurrDrone 0
+    call getCurrDroneId
+    push eax
+    push currDroneFormat
+    call printf
+    add  esp, 8
+%endmacro
 %macro printGameBoard 0
     pushad
     ;allocate memory for board
@@ -235,7 +242,8 @@ section .rodata
     droneFormat:        db "id: %2X  X: %7.2f  Y: %7.2f  Speed: %7.3f  Angle: %7.2f  Score: %4d  Status: %s", 10, 0
     ActiveFormat:       db 'ACTIVE',0
     notActiveFormat:    db 'LOST',0
-    targetFormat:       db 'Target x: %.2f, Target y: %.2f',10,0
+    targetFormat:       db 'Target  X: %7.2f  Y: %7.2f',10,0
+    currDroneFormat:    db "Last drone to play was: %X",10,0
     pawnFormat:         db " %X ",0
     CharFormat:         db " %c ",0
     newLineFormat:      db "",10,0
@@ -256,6 +264,7 @@ section .text
     extern calloc
     extern printf
     extern getDrone
+    extern getCurrDroneId
     extern getTargetX
     extern getTargetY
     extern getN
@@ -290,6 +299,7 @@ printGame:
         inc dword[index]
         jmp dronePrintForLoop
     endDronePrintForLoop:
+        printCurrDrone
         ;printGameBoard
         printThreeLines
         ret
